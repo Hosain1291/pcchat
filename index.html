@@ -16,6 +16,14 @@
             font-display: swap;
         }
 
+        /* HbiosSys 폰트 (추가) */
+        @font-face {
+            font-family: 'HbiosSys';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2207-01@1.0/HBIOS-SYS.woff2') format('woff2');
+            font-weight: normal;
+            font-display: swap;
+        }
+
         body {
             background-color: #0000AA; /* 하이텔 파란 바탕 */
             color: #FFFFFF;
@@ -122,7 +130,7 @@
     <div id="screen-container">
         <div class="header-bar">
             <div><span class="white-bg">CHAT</span> 실시간 공개 대화방</div>
-            <div class="yellow">명령어: /n [닉네임] | /font [물마루/서궁] | /cls | /q</div>
+            <div class="yellow">명령어: /n [닉네임] | /font [물마루/서궁/Hbios] | /cls | /q</div>
         </div>
         
         <div id="chat-terminal" class="terminal-output"></div>
@@ -259,8 +267,12 @@
                         document.body.style.fontFamily = "'Mulmaru', monospace";
                         ui.commandInput.style.fontFamily = "'Mulmaru', monospace";
                         printChatLine({ type: 'system', text: "폰트가 '물마루'로 변경되었습니다." });
+                    } else if (arg.toLowerCase() === 'hbios') {
+                        document.body.style.fontFamily = "'HbiosSys', monospace";
+                        ui.commandInput.style.fontFamily = "'HbiosSys', monospace";
+                        printChatLine({ type: 'system', text: "폰트가 'Hbios'로 변경되었습니다." });
                     } else {
-                        printChatLine({ type: 'system', text: "사용법: /font [물마루/서궁]" });
+                        printChatLine({ type: 'system', text: "사용법: /font [물마루/서궁/Hbios]" });
                     }
                 } else if (mainCmd === '/cls' || mainCmd === '/clear') {
                     ui.chatTerminal.innerHTML = '';
