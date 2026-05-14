@@ -4,9 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>하이텔 에뮬레이터</title>
+    <!-- 서궁 폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/MonadABXY/suhgung-font@main/suhgung.css">
     <style>
         @import url("https://cdn.jsdelivr.net/gh/MonadABXY/suhgung-font@main/suhgung.css");
 
+        /* 물마루 폰트 (기본) */
         @font-face {
             font-family: 'Mulmaru';
             src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-4@1.1/Mulmaru.woff2') format('woff2');
@@ -23,6 +26,7 @@
             padding: 10px;
             line-height: 1.4;
             height: 100vh;
+            height: 100dvh; /* 모바일 가상 키보드 높이 동적 대응 */
             box-sizing: border-box;
             display: flex;
             flex-direction: column;
@@ -115,6 +119,38 @@
             text-decoration: underline;
             cursor: pointer;
         }
+
+        /* 모바일 기기 반응형 처리 (기존 UI 디자인 유지) */
+        @media (max-width: 768px) {
+            body {
+                font-size: 15px; /* 작은 화면에서 기본 폰트 크기 약간 축소 */
+                padding: 6px;
+            }
+            .menu-list {
+                font-size: 17px;
+                padding: 10px;
+            }
+            #command-input {
+                font-size: 15px;
+                min-width: 100px;
+                flex-grow: 1;
+            }
+            #input-area {
+                flex-wrap: wrap; /* 긴 프롬프트 시 입력창이 다음 줄로 자연스럽게 넘어가도록 허용 */
+            }
+            #prompt-text {
+                white-space: pre-wrap;
+                margin-bottom: 2px;
+                word-break: keep-all;
+            }
+            .header-bar {
+                flex-direction: column; /* 모바일에서는 헤더가 겹치지 않게 위아래로 배치 */
+                gap: 4px;
+            }
+            .terminal-output {
+                padding-right: 2px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -162,7 +198,7 @@
         <div id="view-chat" class="view-section">
             <div class="header-bar">
                 <div><span class="white-bg">CHAT</span> 실시간 대화방 (2)</div>
-                <div class="yellow">/q:종료, /n [이름]:닉변, /font [물마루|서궁]:폰트</div>
+                <div class="yellow">/q 입력시 메인메뉴로 이동 | /n [닉네임] | /font [물마루/서궁]</div>
             </div>
             <div id="chat-terminal" class="terminal-output"></div>
         </div>
@@ -196,12 +232,12 @@
         const db = getFirestore(app);
         const storage = getStorage(app);
 
-        // 환경변수 사용 혹은 고정 App ID
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'pc-comm-v1';
+        // 모두가 동일한 방을 쓰도록 고정 ID 사용
+        const appId = 'pc-comm-global-v1'; 
         
         // Firestore Collections
-        const chatCollection = collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages_v3');
-        const boardCollection = collection(db, 'artifacts', appId, 'public', 'data', 'board_posts_v3');
+        const chatCollection = collection(db, 'global_chat', appId, 'messages');
+        const boardCollection = collection(db, 'global_board', appId, 'posts');
 
         // 상태 관리 (MENU, BOARD_LIST, BOARD_WRITE, BOARD_READ, CHAT)
         let currentState = 'MENU';
@@ -264,7 +300,7 @@
         }
 
         function startRealtimeChat() {
-            ui.chatTerminal.innerHTML = `<div class="yellow">환영합니다! 당신의 닉네임은 [${nickname}] 입니다.</div>`;
+            ui.chatTerminal.innerHTML = `<div class="yellow">환영합니다! 당신의 닉네임은 [${nickname}] 입니다.<br>명령어: /n 닉네임, /font 서궁(또는 물마루), /q</div>`;
             renderedChatIds.clear();
 
             chatUnsubscribe = onSnapshot(chatCollection, (snapshot) => {
@@ -369,7 +405,7 @@ ${escapeHtml(post.content).replace(/\n/g, '<br>')}
             
             try {
                 // Storage 경로
-                const storageRef = ref(storage, `artifacts/${appId}/public/data/board_files/${Date.now()}_${file.name}`);
+                const storageRef = ref(storage, `global_board_files/${Date.now()}_${file.name}`);
                 const uploadTask = uploadBytesResumable(storageRef, file);
                 
                 uploadTask.on('state_changed', 
@@ -407,7 +443,7 @@ ${escapeHtml(post.content).replace(/\n/g, '<br>')}
                 printBoardSysMsg(`<span class="green">성공적으로 저장되었습니다.</span>`);
             } catch(e) { 
                 console.error(e); 
-                printBoardSysMsg(`<span class="red">저장 실패.</span>`);
+                printBoardSysMsg(`<span class="red">저장 실패. Firebase 규칙을 확인해주세요.</span>`);
             }
             setTimeout(() => switchState('BOARD_LIST'), 1500);
         }
@@ -441,19 +477,19 @@ ${escapeHtml(post.content).replace(/\n/g, '<br>')}
                                 nickname = arg;
                                 printChatLine({ type: 'system', text: `닉네임이 [${nickname}](으)로 변경되었습니다.` });
                             } else {
-                                printChatLine({ type: 'system', text: "사용법: /n [새닉네임]" });
+                                printChatLine({ type: 'system', text: "사용법: /n [변경할 닉네임]" });
                             }
                         } else if (mainCmd === '/font') {
                             if (arg === '서궁') {
-                                document.body.style.fontFamily = "'Suhgung12', 'Suhgung', monospace";
-                                ui.commandInput.style.fontFamily = "'Suhgung12', 'Suhgung', monospace";
+                                document.body.style.fontFamily = "'suhgung', monospace";
+                                ui.commandInput.style.fontFamily = "'suhgung', monospace";
                                 printChatLine({ type: 'system', text: "폰트가 '서궁'으로 변경되었습니다." });
                             } else if (arg === '물마루') {
                                 document.body.style.fontFamily = "'Mulmaru', monospace";
                                 ui.commandInput.style.fontFamily = "'Mulmaru', monospace";
                                 printChatLine({ type: 'system', text: "폰트가 '물마루'로 변경되었습니다." });
                             } else {
-                                printChatLine({ type: 'system', text: "사용법: /font [물마루|서궁]" });
+                                printChatLine({ type: 'system', text: "사용법: /font [물마루/서궁]" });
                             }
                         } else {
                             printChatLine({ type: 'system', text: "알 수 없는 명령어입니다. (/q, /n, /font)" });
@@ -467,7 +503,10 @@ ${escapeHtml(post.content).replace(/\n/g, '<br>')}
                                     timestamp: Date.now(),
                                     type: 'chat'
                                 });
-                            } catch(e) { console.error(e); }
+                            } catch(e) { 
+                                console.error(e); 
+                                printChatLine({ type: 'system', text: `[경고] 서버 전송 실패! Firebase 콘솔에서 Firestore '규칙(Rules)'을 변경해야 다른 사람과 채팅이 가능합니다.` });
+                            }
                         }
                     }
                     break;
@@ -538,8 +577,14 @@ ${escapeHtml(post.content).replace(/\n/g, '<br>')}
                  .replace(/'/g, "&#039;");
         }
 
-        document.body.addEventListener('click', () => {
-            ui.commandInput.focus();
+        document.body.addEventListener('click', (e) => {
+            // 모바일에서 채팅을 보려고 터치/스크롤할 때마다 키보드가 올라오는 불편함 방지
+            if (e.target.tagName !== 'A' && e.target.tagName !== 'INPUT') {
+                // PC 화면(가로 768px 초과)이거나, 하단 입력 영역을 직접 터치했을 때만 포커스
+                if (window.innerWidth > 768 || e.target.closest('#input-area')) {
+                    ui.commandInput.focus();
+                }
+            }
         });
 
         init();
