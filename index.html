@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>하이텔 에뮬레이터</title>
+    <style>
+        @import url("https://cdn.jsdelivr.net/gh/MonadABXY/suhgung-font@main/suhgung.css");
+
+        @font-face {
+            font-family: 'Mulmaru';
+            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-4@1.1/Mulmaru.woff2') format('woff2');
+            font-weight: normal;
+            font-display: swap;
+        }
+
+        body {
+            background-color: #0000AA; /* 하이텔 파란 바탕 */
+            color: #FFFFFF;
+            font-family: 'Mulmaru', monospace;
+            font-size: 18px;
+            margin: 0;
+            padding: 10px;
+            line-height: 1.4;
+            height: 100vh;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            letter-spacing: 1px;
+        }
+
+        /* 공통 유틸리티 클래스 */
+        .cyan { color: #55FFFF; }
+        .green { color: #55FF55; }
+        .yellow { color: #FFFF55; }
+        .red { color: #FF5555; }
+        .white-bg { background-color: #FFFFFF; color: #0000AA; font-weight: bold; padding: 0 4px; }
+        
+        #screen-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* 뷰 컨트롤 (메뉴, 게시판, 채팅) */
+        .view-section { display: none; flex-direction: column; height: 100%; }
+        .view-section.active { display: flex; }
+
+        /* 하이텔 메뉴 스타일 */
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid #FFFFFF;
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+        }
+
+        .menu-list {
+            padding: 20px;
+            font-size: 20px;
+        }
+
+        .menu-item { display: flex; margin-bottom: 15px; cursor: pointer; }
+        .menu-item .num { width: 40px; text-align: right; margin-right: 15px; }
+
+        /* 입력 영역 */
+        #input-area {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #FFFFFF;
+        }
+
+        #prompt-text { margin-right: 10px; white-space: nowrap; }
+
+        #command-input {
+            background-color: transparent;
+            border: none;
+            color: #FFFFFF;
+            font-family: 'Mulmaru', monospace;
+            font-size: 18px;
+            flex-grow: 1;
+            outline: none;
+        }
+
+        /* 터미널 출력 창 (채팅/게시판용) */
+        .terminal-output {
+            flex-grow: 1;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            padding-right: 10px;
+        }
+        .terminal-output::-webkit-scrollbar { display: none; }
+
+        /* 로딩 스크린 */
+        #loading-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000000;
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            font-size: 24px;
+        }
+
+        /* 첨부파일 다운로드 링크 스타일 */
+        a.file-link {
+            color: #55FF55;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div>
+            ATDT 01410<br><br>
+            <span style="color:#55FFFF">개인 PC통신망에 접속 중입니다...</span>
+        </div>
+    </div>
+
+    <!-- 숨겨진 파일 업로드 인풋 -->
+    <input type="file" id="hidden-file-input" style="display: none;">
+
+    <div id="screen-container">
+        <!-- 1. 메인 메뉴 화면 -->
+        <div id="view-menu" class="view-section active">
+            <div class="header-bar">
+                <div><span class="white-bg">MAIN</span> 초기화면</div>
+                <div>나만의 PC통신</div>
+            </div>
+
+            <div class="menu-list">
+                <div class="cyan" style="margin-bottom: 30px; text-align: center;">원하시는 메뉴 번호를 입력해주세요.</div>
+                
+                <div class="menu-item"><div class="num">1.</div><div>자료실 / 자유게시판</div></div>
+                <div class="menu-item green"><div class="num">2.</div><div>실시간 채팅방</div></div>
+            </div>
+        </div>
+
+        <!-- 2. 자료실/게시판 화면 -->
+        <div id="view-board" class="view-section">
+            <div class="header-bar">
+                <div><span class="white-bg">BBS</span> 자료실 / 자유게시판 (1)</div>
+                <div class="cyan">자료 공유 및 게시판</div>
+            </div>
+            <div id="board-terminal" class="terminal-output">
+                <div>번호   제목                                                 작성자     파일여부</div>
+                <div style="border-bottom: 1px dashed white; margin-bottom: 10px;"></div>
+                <div id="board-list-content">목록을 불러오는 중...</div>
+            </div>
+        </div>
+
+        <!-- 3. 실시간 채팅 화면 -->
+        <div id="view-chat" class="view-section">
+            <div class="header-bar">
+                <div><span class="white-bg">CHAT</span> 실시간 대화방 (2)</div>
+                <div class="yellow">/q:종료, /n [이름]:닉변, /font [물마루|서궁]:폰트</div>
+            </div>
+            <div id="chat-terminal" class="terminal-output"></div>
+        </div>
+
+        <!-- 하단 입력창 -->
+        <div id="input-area">
+            <span id="prompt-text">이동(GO,인덱스) 상위메뉴(P) >></span>
+            <input type="text" id="command-input" autocomplete="off">
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+
+        // 사용자 제공 Firebase 설정
+        const firebaseConfig = {
+            apiKey: "AIzaSyDDhmcLA1UEE-pMdpEoBIz-EPeUdvv8774",
+            authDomain: "pc-communication-chat.firebaseapp.com",
+            projectId: "pc-communication-chat",
+            storageBucket: "pc-communication-chat.firebasestorage.app",
+            messagingSenderId: "932613477787",
+            appId: "1:932613477787:web:3bf6974c59e608bdc07d3e",
+            measurementId: "G-JRV8DCK7FR"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        // 환경변수 사용 혹은 고정 App ID
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'pc-comm-v1';
+        
+        // Firestore Collections
+        const chatCollection = collection(db, 'artifacts', appId, 'public', 'data', 'chat_messages_v3');
+        const boardCollection = collection(db, 'artifacts', appId, 'public', 'data', 'board_posts_v3');
+
+        // 상태 관리 (MENU, BOARD_LIST, BOARD_WRITE, BOARD_READ, CHAT)
+        let currentState = 'MENU';
+        let nickname = "User_" + Math.floor(Math.random() * 9000 + 1000);
+        let currentWritingStep = null; // TITLE, CONTENT, FILE_PROMPT, UPLOADING
+        let tempPost = {}; 
+        
+        const ui = {
+            loading: document.getElementById('loading-screen'),
+            viewMenu: document.getElementById('view-menu'),
+            viewBoard: document.getElementById('view-board'),
+            viewChat: document.getElementById('view-chat'),
+            promptText: document.getElementById('prompt-text'),
+            commandInput: document.getElementById('command-input'),
+            chatTerminal: document.getElementById('chat-terminal'),
+            boardTerminal: document.getElementById('board-list-content'),
+            fileInput: document.getElementById('hidden-file-input')
+        };
+
+        let chatUnsubscribe = null;
+        let boardUnsubscribe = null;
+        const renderedChatIds = new Set();
+        let boardPosts = []; 
+
+        async function init() {
+            try {
+                await signInAnonymously(auth);
+                setTimeout(() => {
+                    ui.loading.style.display = 'none';
+                    ui.commandInput.focus();
+                }, 1500); 
+            } catch (error) {
+                console.error("Auth Error:", error);
+                ui.loading.innerHTML = "<span style='color:red'>서버 접속 실패. <br>Firebase 콘솔에서 익명 로그인을 확인해주세요.</span>";
+            }
+        }
+
+        function switchState(newState) {
+            currentState = newState;
+            ui.viewMenu.classList.remove('active');
+            ui.viewBoard.classList.remove('active');
+            ui.viewChat.classList.remove('active');
+
+            if (newState === 'MENU') {
+                ui.viewMenu.classList.add('active');
+                ui.promptText.textContent = "선택(1~2) >>";
+                if(chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
+            } 
+            else if (newState === 'CHAT') {
+                ui.viewChat.classList.add('active');
+                ui.promptText.textContent = "메시지 입력 (/q: 종료) >>";
+                startRealtimeChat();
+            } 
+            else if (newState === 'BOARD_LIST') {
+                ui.viewBoard.classList.add('active');
+                ui.promptText.textContent = "읽을 번호 선택 (W: 글쓰기, B: 메인메뉴) >>";
+                startBoardListener();
+            }
+            ui.commandInput.focus();
+        }
+
+        function startRealtimeChat() {
+            ui.chatTerminal.innerHTML = `<div class="yellow">환영합니다! 당신의 닉네임은 [${nickname}] 입니다.</div>`;
+            renderedChatIds.clear();
+
+            chatUnsubscribe = onSnapshot(chatCollection, (snapshot) => {
+                const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+                messages.forEach(msg => {
+                    if (!renderedChatIds.has(msg.id)) {
+                        renderedChatIds.add(msg.id);
+                        printChatLine(msg);
+                    }
+                });
+            });
+        }
+
+        function printChatLine(msg) {
+            const line = document.createElement('div');
+            if (msg.type === 'system') {
+                line.innerHTML = `<span class="yellow">${escapeHtml(msg.text)}</span>`;
+            } else {
+                line.innerHTML = `[${escapeHtml(msg.nickname)}] ${escapeHtml(msg.text)}`;
+            }
+            ui.chatTerminal.appendChild(line);
+            ui.chatTerminal.scrollTop = ui.chatTerminal.scrollHeight;
+        }
+
+        function startBoardListener() {
+            if (boardUnsubscribe) boardUnsubscribe();
+            
+            ui.boardTerminal.innerHTML = "목록을 불러오는 중...";
+            boardUnsubscribe = onSnapshot(boardCollection, (snapshot) => {
+                boardPosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                boardPosts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); // 내림차순 (최신글이 위로)
+                renderBoardList();
+            });
+        }
+
+        function renderBoardList() {
+            ui.boardTerminal.innerHTML = '';
+            if (boardPosts.length === 0) {
+                ui.boardTerminal.innerHTML = "등록된 게시물/자료가 없습니다.<br>";
+                return;
+            }
+
+            boardPosts.forEach((post, index) => {
+                const num = (index + 1).toString().padEnd(4, ' ');
+                const title = escapeHtml(post.title).padEnd(50, ' ').substring(0, 50); 
+                const author = escapeHtml(post.nickname).padEnd(10, ' ').substring(0, 10);
+                const hasFile = post.fileUrl ? '▣' : ' '; // 파일 첨부 아이콘
+
+                const line = document.createElement('div');
+                line.style.whiteSpace = 'pre';
+                line.innerHTML = `${num} ${title} ${author} <span class="green">${hasFile}</span>`;
+                ui.boardTerminal.appendChild(line);
+            });
+            ui.boardTerminal.scrollTop = ui.boardTerminal.scrollHeight;
+        }
+
+        function renderBoardPost(postIndex) {
+            const post = boardPosts[postIndex];
+            if (!post) {
+                printBoardSysMsg("존재하지 않는 게시물입니다.");
+                return;
+            }
+
+            let fileHtml = '';
+            if (post.fileUrl) {
+                fileHtml = `<br><span class="yellow">첨부파일:</span> <a href="${post.fileUrl}" target="_blank" class="file-link">[${escapeHtml(post.fileName)}] 다운로드</a><br>`;
+            }
+
+            ui.boardTerminal.innerHTML = `
+<span class="cyan">제목:</span> ${escapeHtml(post.title)}
+<span class="cyan">작성자:</span> ${escapeHtml(post.nickname)}
+<div style="border-bottom: 1px dashed white; margin: 10px 0;"></div>
+${escapeHtml(post.content).replace(/\n/g, '<br>')}
+<div style="border-bottom: 1px dashed white; margin: 10px 0;"></div>${fileHtml}
+<br><span class="yellow">(엔터 키를 누르면 목록으로 돌아갑니다)</span>`;
+            ui.boardTerminal.scrollTop = 0;
+            currentState = 'BOARD_READ';
+            ui.promptText.textContent = "목록으로(Enter) >>";
+        }
+
+        function printBoardSysMsg(msg) {
+            const div = document.createElement('div');
+            div.className = "yellow";
+            div.innerHTML = msg;
+            ui.boardTerminal.appendChild(div);
+            ui.boardTerminal.scrollTop = ui.boardTerminal.scrollHeight;
+        }
+
+        // --- 파일 업로드 처리 로직 ---
+        ui.fileInput.addEventListener('change', async (e) => {
+            if (currentState !== 'BOARD_WRITE' || currentWritingStep !== 'UPLOADING') return;
+            const file = e.target.files[0];
+            if (!file) {
+                 savePost(null); 
+                 return;
+            }
+            
+            printBoardSysMsg(`<br><span class="cyan">${file.name} 업로드 중... 잠시만 기다려주세요.</span>`);
+            ui.promptText.textContent = "업로드 중 >>";
+            
+            try {
+                // Storage 경로
+                const storageRef = ref(storage, `artifacts/${appId}/public/data/board_files/${Date.now()}_${file.name}`);
+                const uploadTask = uploadBytesResumable(storageRef, file);
+                
+                uploadTask.on('state_changed', 
+                    (snapshot) => { }, // 진행률 처리 가능
+                    (error) => { 
+                        printBoardSysMsg(`<span class="red">업로드 실패: ${error.message}</span>`);
+                        savePost(null);
+                    },
+                    async () => {
+                        const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+                        savePost({ name: file.name, url: downloadURL });
+                    }
+                );
+            } catch (err) {
+                printBoardSysMsg(`<span class="red">오류 발생: ${err.message}</span>`);
+                savePost(null);
+            }
+            e.target.value = ''; // 초기화
+        });
+
+        async function savePost(fileData) {
+            ui.promptText.textContent = "저장 중...";
+            try {
+                const postData = {
+                    nickname: nickname,
+                    title: tempPost.title,
+                    content: tempPost.content.join('\n'),
+                    timestamp: Date.now()
+                };
+                if (fileData) {
+                    postData.fileName = fileData.name;
+                    postData.fileUrl = fileData.url;
+                }
+                await addDoc(boardCollection, postData);
+                printBoardSysMsg(`<span class="green">성공적으로 저장되었습니다.</span>`);
+            } catch(e) { 
+                console.error(e); 
+                printBoardSysMsg(`<span class="red">저장 실패.</span>`);
+            }
+            setTimeout(() => switchState('BOARD_LIST'), 1500);
+        }
+
+        // --- 키보드 커맨드 처리 ---
+        ui.commandInput.addEventListener('keydown', async function(e) {
+            if (e.key !== 'Enter') return;
+            
+            const cmd = this.value.trim();
+            this.value = '';
+
+            switch (currentState) {
+                case 'MENU':
+                    if (cmd === '1') {
+                        switchState('BOARD_LIST');
+                    } else if (cmd === '2') {
+                        switchState('CHAT');
+                    }
+                    break;
+
+                case 'CHAT':
+                    if (cmd.startsWith('/')) {
+                        const parts = cmd.split(' ');
+                        const mainCmd = parts[0].toLowerCase();
+                        const arg = parts.slice(1).join(' ');
+
+                        if (mainCmd === '/q' || mainCmd === '/quit') {
+                            switchState('MENU');
+                        } else if (mainCmd === '/n' || mainCmd === '/nick') {
+                            if (arg) {
+                                nickname = arg;
+                                printChatLine({ type: 'system', text: `닉네임이 [${nickname}](으)로 변경되었습니다.` });
+                            } else {
+                                printChatLine({ type: 'system', text: "사용법: /n [새닉네임]" });
+                            }
+                        } else if (mainCmd === '/font') {
+                            if (arg === '서궁') {
+                                document.body.style.fontFamily = "'Suhgung12', 'Suhgung', monospace";
+                                ui.commandInput.style.fontFamily = "'Suhgung12', 'Suhgung', monospace";
+                                printChatLine({ type: 'system', text: "폰트가 '서궁'으로 변경되었습니다." });
+                            } else if (arg === '물마루') {
+                                document.body.style.fontFamily = "'Mulmaru', monospace";
+                                ui.commandInput.style.fontFamily = "'Mulmaru', monospace";
+                                printChatLine({ type: 'system', text: "폰트가 '물마루'로 변경되었습니다." });
+                            } else {
+                                printChatLine({ type: 'system', text: "사용법: /font [물마루|서궁]" });
+                            }
+                        } else {
+                            printChatLine({ type: 'system', text: "알 수 없는 명령어입니다. (/q, /n, /font)" });
+                        }
+                    } else if (cmd !== '') {
+                        if(auth.currentUser) {
+                            try {
+                                await addDoc(chatCollection, {
+                                    nickname: nickname,
+                                    text: cmd,
+                                    timestamp: Date.now(),
+                                    type: 'chat'
+                                });
+                            } catch(e) { console.error(e); }
+                        }
+                    }
+                    break;
+
+                case 'BOARD_LIST':
+                    const lowerCmd = cmd.toLowerCase();
+                    if (lowerCmd === 'b' || lowerCmd === 'p' || lowerCmd === 't') {
+                        switchState('MENU');
+                    } else if (lowerCmd === 'w') {
+                        currentState = 'BOARD_WRITE';
+                        currentWritingStep = 'TITLE';
+                        ui.boardTerminal.innerHTML = "<span class='cyan'>[자료/게시물 작성]</span><br><br>작성을 취소하려면 'q'를 입력하세요.<br><br>제목을 입력하세요:";
+                        ui.promptText.textContent = "제목 >>";
+                    } else if (!isNaN(cmd) && cmd !== '') {
+                        renderBoardPost(parseInt(cmd) - 1);
+                    }
+                    break;
+
+                case 'BOARD_WRITE':
+                    if (cmd.toLowerCase() === 'q' && currentWritingStep !== 'UPLOADING') {
+                        switchState('BOARD_LIST');
+                        break;
+                    }
+
+                    if (currentWritingStep === 'TITLE') {
+                        if(cmd.trim() === '') return;
+                        tempPost.title = cmd;
+                        currentWritingStep = 'CONTENT';
+                        ui.boardTerminal.innerHTML += `<br><span class="yellow">${escapeHtml(cmd)}</span><br><br>내용을 입력하세요. (다 썼으면 !! 입력 후 엔터):<br>`;
+                        ui.promptText.textContent = "내용 >>";
+                        tempPost.content = [];
+                    } 
+                    else if (currentWritingStep === 'CONTENT') {
+                        if (cmd === '!!') {
+                            currentWritingStep = 'FILE_PROMPT';
+                            printBoardSysMsg("<br>파일을 첨부하시겠습니까? (Y/N): ");
+                            ui.promptText.textContent = "Y/N >>";
+                        } else {
+                            tempPost.content.push(cmd);
+                            printBoardSysMsg(cmd); 
+                        }
+                    }
+                    else if (currentWritingStep === 'FILE_PROMPT') {
+                        if (cmd.toUpperCase() === 'Y') {
+                            currentWritingStep = 'UPLOADING';
+                            ui.promptText.textContent = "파일 선택 대기 >>";
+                            ui.fileInput.click(); // 숨겨진 input 활성화
+                        } else if (cmd.toUpperCase() === 'N') {
+                            savePost(null);
+                        } else {
+                            printBoardSysMsg("Y 또는 N 을 입력하세요: ");
+                        }
+                    }
+                    break;
+
+                case 'BOARD_READ':
+                    switchState('BOARD_LIST');
+                    break;
+            }
+        });
+
+        function escapeHtml(unsafe) {
+            return (unsafe || '').toString()
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        document.body.addEventListener('click', () => {
+            ui.commandInput.focus();
+        });
+
+        init();
+
+    </script>
+</body>
+</html>
