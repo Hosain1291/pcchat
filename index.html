@@ -53,6 +53,9 @@
             flex-direction: column;
             overflow: hidden;
             position: relative;
+            /* PC 화면에서 텍스트가 왼쪽으로 치우치지 않게 가운데 정렬을 위한 여백 */
+            margin: 0 auto; 
+            width: 100%;
         }
 
         .view-section {
@@ -71,6 +74,9 @@
             border-bottom: 1px solid #FFFFFF;
             padding-bottom: 5px;
             margin-bottom: 10px;
+            /* 헤더 바 안의 텍스트가 한 줄에 잘 나오도록 여백 확보 */
+            gap: 10px; 
+            align-items: center;
         }
 
         #input-area {
@@ -79,6 +85,10 @@
             margin-top: 10px;
             padding-top: 10px;
             border-top: 1px solid #FFFFFF;
+            /* 입력 영역도 가운데 정렬 유지 */
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
         }
 
         #prompt-text { margin-right: 10px; white-space: nowrap; color: #55FFFF; }
@@ -138,8 +148,44 @@
             #command-input { font-size: 15px; min-width: 100px; flex-grow: 1; }
             #input-area { flex-wrap: wrap; }
             #prompt-text { white-space: pre-wrap; margin-bottom: 2px; word-break: keep-all; }
-            .header-bar { flex-direction: column; gap: 4px; }
+            .header-bar { flex-direction: column; gap: 4px; align-items: flex-start; }
             .terminal-output { padding-right: 2px; }
+            
+            /* 모바일에서 팝업 크기 조절 */
+            .popup-box {
+                padding: 15px;
+                max-width: 95%;
+                font-size: 14px;
+            }
+            .popup-box .white-bg { font-size: 18px !important; }
+            
+            /* 모바일에서 메인 화면 타이틀 크기 조절 */
+            #view-main h1 { font-size: 24px; padding: 5px; }
+            #view-main .terminal-output > div:nth-child(4) { font-size: 16px !important; }
+            
+            /* 모바일에서 방 만들기 화면 텍스트 크기 조절 */
+            #view-makeroom .yellow { font-size: 20px !important; }
+            #view-makeroom .cyan, #view-makeroom .green, #view-makeroom > div > div:last-child { font-size: 14px !important; }
+        }
+
+        /* 큰 화면(PC)을 위한 추가 최적화 (가운데 정렬 및 최대 너비 설정) */
+        @media (min-width: 1024px) {
+            body {
+                align-items: center; /* 전체 요소를 가운데 정렬 */
+                justify-content: center; /* 세로로도 화면 중앙에 오게 함 (선택사항) */
+            }
+            #screen-container, #input-area, #loading-screen > div {
+                width: 100%;
+                /* 화면 너비를 기존 900px에서 700px로 줄여 옛날 모니터 비율에 가깝게 조정 */
+                max-width: 700px; 
+            }
+            /* PC에서 폰트 크기를 조금 키워 가독성 확보 */
+            body {
+                font-size: 20px;
+            }
+            #command-input {
+                font-size: 20px;
+            }
         }
     </style>
 </head>
