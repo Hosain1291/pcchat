@@ -1,0 +1,41 @@
+rules_version = '2';
+// PC통신 실시간 대화방 - Firebase 콘솔 > Firestore Database > 규칙 에 붙여 넣고 [게시]
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 대화실 (기존과 같은 경로)
+    match /chat_rooms/{room}/messages/{id} {
+      allow read: if true;
+      allow create: if request.auth != null;
+    }
+
+    // 게시판 · 동호회 게시판
+    match /boards/{board}/posts/{post} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid;
+      // 조회수 · 댓글수만 누구나 올릴 수 있음
+      allow update: if request.auth != null
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'comments']);
+      // 자기 글만 삭제
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+
+      match /comments/{c} {
+        allow read: if true;
+        allow create: if request.auth != null;
+      }
+    }
+
+    // 한줄메모
+    match /memos/{id} {
+      allow read: if true;
+      allow create: if request.auth != null;
+    }
+
+    // 접속자 목록 (자기 것만 쓰기)
+    match /presence/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}

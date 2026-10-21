@@ -1,525 +1,1382 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PC통신 실시간 대화방</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/MonadABXY/suhgung-font@main/suhgung.css">
-    <style>
-        @import url("https://cdn.jsdelivr.net/gh/MonadABXY/suhgung-font@main/suhgung.css");
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>PC통신 실시간 대화방</title>
+<meta name="description" content="PC통신 시절 화면을 고증한 실시간 대화방 · 게시판 · 동호회 · 한줄메모">
+<style>
+/* ───────────── 글꼴 ───────────── */
+@font-face {
+    font-family: 'RoundedFixedsys';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_six@1.2/DungGeunMo.woff') format('woff');
+    font-weight: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Seogung';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-4@1.1/Suhgung12.woff2') format('woff2');
+    font-weight: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Umdot';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-4@1.1/Umdot12.woff2') format('woff2');
+    font-weight: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'StoryBold';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2512-1@1.0/IyagiGGC.woff') format('woff');
+    font-weight: normal;
+    font-display: swap;
+}
 
-        /* 물마루 폰트 (기본) */
-        @font-face {
-            font-family: 'Mulmaru';
-            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-4@1.1/Mulmaru.woff2') format('woff2');
-            font-weight: normal;
-            font-display: swap;
-        }
+/* ───────────── 테마 (색상 토큰) ───────────── */
+:root, [data-theme="blue"] {
+    --bg:#0000AA; --fg:#E8E8E8; --hi:#FFFFFF; --dim:#9C9CD8;
+    --c1:#55FFFF; --c2:#FFFF55; --c3:#55FF55; --c4:#FF5555; --c5:#FF55FF;
+    --bar-bg:#AAAAAA; --bar-fg:#000000;
+    --fkn-bg:#000000; --fkn-fg:#FFFFFF; --fkl-bg:#00AAAA; --fkl-fg:#000000;
+    --sel-bg:#00AAAA; --sel-fg:#000000; --shadow:#000044; --glow:rgba(255,255,255,.35);
+}
+[data-theme="black"] {
+    --bg:#000000; --fg:#C0C0C0; --hi:#FFFFFF; --dim:#7A7A7A;
+    --c1:#55FFFF; --c2:#FFFF55; --c3:#55FF55; --c4:#FF5555; --c5:#FF55FF;
+    --bar-bg:#0000AA; --bar-fg:#FFFFFF;
+    --fkn-bg:#000000; --fkn-fg:#FFFFFF; --fkl-bg:#AAAAAA; --fkl-fg:#000000;
+    --sel-bg:#0000AA; --sel-fg:#FFFFFF; --shadow:#333333; --glow:rgba(200,200,200,.3);
+}
+[data-theme="green"] {
+    --bg:#021006; --fg:#33FF66; --hi:#C4FFD2; --dim:#1D8A3B;
+    --c1:#8CFFA8; --c2:#D6FFE0; --c3:#33FF66; --c4:#A8FFBC; --c5:#8CFFA8;
+    --bar-bg:#33FF66; --bar-fg:#021006;
+    --fkn-bg:#021006; --fkn-fg:#C4FFD2; --fkl-bg:#1D8A3B; --fkl-fg:#021006;
+    --sel-bg:#33FF66; --sel-fg:#021006; --shadow:#00300C; --glow:rgba(51,255,102,.6);
+}
+[data-theme="amber"] {
+    --bg:#140B00; --fg:#FFB000; --hi:#FFE2A6; --dim:#9C6B00;
+    --c1:#FFC94D; --c2:#FFE2A6; --c3:#FFB000; --c4:#FFD27A; --c5:#FFC94D;
+    --bar-bg:#FFB000; --bar-fg:#140B00;
+    --fkn-bg:#140B00; --fkn-fg:#FFE2A6; --fkl-bg:#9C6B00; --fkl-fg:#140B00;
+    --sel-bg:#FFB000; --sel-fg:#140B00; --shadow:#3A2200; --glow:rgba(255,176,0,.6);
+}
+[data-theme="lcd"] {
+    --bg:#A9B591; --fg:#1F2A1A; --hi:#0A1008; --dim:#55644A;
+    --c1:#18301A; --c2:#0A1008; --c3:#2C3F26; --c4:#0A1008; --c5:#2C3F26;
+    --bar-bg:#1F2A1A; --bar-fg:#A9B591;
+    --fkn-bg:#1F2A1A; --fkn-fg:#A9B591; --fkl-bg:#8C9A74; --fkl-fg:#0A1008;
+    --sel-bg:#1F2A1A; --sel-fg:#A9B591; --shadow:#7D8A66; --glow:rgba(0,0,0,0);
+}
+[data-theme="win31"] {
+    --bg:#FFFFFF; --fg:#000000; --hi:#000000; --dim:#808080;
+    --c1:#000080; --c2:#800000; --c3:#007000; --c4:#C00000; --c5:#800080;
+    --bar-bg:#000080; --bar-fg:#FFFFFF;
+    --fkn-bg:#C0C0C0; --fkn-fg:#000080; --fkl-bg:#C0C0C0; --fkl-fg:#000000;
+    --sel-bg:#000080; --sel-fg:#FFFFFF; --shadow:#808080; --glow:rgba(0,0,0,0);
+}
 
-        /* HbiosSys 폰트 (추가) */
-        @font-face {
-            font-family: 'HbiosSys';
-            src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2207-01@1.0/HBIOS-SYS.woff2') format('woff2');
-            font-weight: normal;
-            font-display: swap;
-        }
+:root { --font:'RoundedFixedsys'; --fs:18px; --scale:1; }
 
-        body {
-            background-color: #0000AA;
-            color: #FFFFFF;
-            font-family: 'Mulmaru', monospace;
-            font-size: 18px;
-            margin: 0;
-            padding: 10px;
-            line-height: 1.4;
-            height: 100vh;
-            height: 100dvh;
-            box-sizing: border-box;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            letter-spacing: 1px;
-        }
+* { box-sizing:border-box; }
+html, body { height:100%; }
+body {
+    margin:0; height:100vh; height:100dvh; overflow:hidden;
+    background:var(--bg); color:var(--fg);
+    font-family:var(--font), 'RoundedFixedsys', monospace;
+    display:flex; align-items:center; justify-content:center;
+    -webkit-font-smoothing:none; font-smooth:never;
+}
+button, input { font:inherit; color:inherit; }
 
-        .cyan { color: #55FFFF; }
-        .green { color: #55FF55; }
-        .yellow { color: #FFFF55; }
-        .red { color: #FF5555; }
-        .white-bg { background-color: #FFFFFF; color: #0000AA; font-weight: bold; padding: 0 4px; }
-        
-        #screen-container {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            position: relative;
-            /* PC 화면에서 텍스트가 왼쪽으로 치우치지 않게 가운데 정렬을 위한 여백 */
-            margin: 0 auto; 
-            width: 100%;
-        }
+#monitor { width:100%; height:100%; display:flex; flex-direction:column; position:relative; }
+#crt {
+    position:relative; flex:1; min-height:0; overflow:hidden;
+    display:flex; flex-direction:column;
+    background:var(--bg); color:var(--fg);
+    font-size:calc(var(--fs) * var(--scale)); line-height:1.45; letter-spacing:.5px;
+}
+.badge, .led { display:none; }
 
-        .view-section {
-            display: none;
-            flex-direction: column;
-            flex-grow: 1;
-            height: 100%;
-        }
-        .view-section.active {
-            display: flex;
-        }
+/* CRT 효과 */
+#crt::after {
+    content:""; position:absolute; inset:0; pointer-events:none; z-index:50;
+    opacity:0; transition:opacity .2s;
+    background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px),
+        radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,.35) 100%);
+}
+.crt-on #crt::after { opacity:1; }
+.crt-on #crt { text-shadow:0 0 3px var(--glow); }
 
-        .header-bar {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px solid #FFFFFF;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
-            /* 헤더 바 안의 텍스트가 한 줄에 잘 나오도록 여백 확보 */
-            gap: 10px; 
-            align-items: center;
-        }
+/* 상단 바 */
+#topbar {
+    display:flex; justify-content:space-between; gap:1em; white-space:nowrap;
+    background:var(--bar-bg); color:var(--bar-fg); padding:.05em .6em;
+}
+#topbar .l, #topbar .r { overflow:hidden; text-overflow:ellipsis; }
+#topbar .svc { font-weight:bold; }
 
-        #input-area {
-            display: flex;
-            align-items: center;
-            margin-top: 10px;
-            padding-top: 10px;
-            border-top: 1px solid #FFFFFF;
-            /* 입력 영역도 가운데 정렬 유지 */
-            margin-left: auto;
-            margin-right: auto;
-            width: 100%;
-        }
+/* 화면 */
+#screen {
+    flex:1; min-height:0; overflow-y:auto; overflow-x:hidden;
+    padding:.5em .9em; white-space:normal; word-break:break-all;
+    scrollbar-width:none;
+}
+#screen::-webkit-scrollbar { display:none; }
 
-        #prompt-text { margin-right: 10px; white-space: nowrap; color: #55FFFF; }
+#flash { min-height:0; padding:0 .9em; color:var(--c4); }
+#flash:empty { display:none; }
+#flash.ok { color:var(--c3); }
 
-        #command-input {
-            background-color: transparent;
-            border: none;
-            color: #FFFFFF;
-            font-family: 'Mulmaru', monospace;
-            font-size: 18px;
-            flex-grow: 1;
-            outline: none;
-        }
+#inrow {
+    display:flex; align-items:center; gap:.6em; padding:.15em .9em .25em;
+    border-top:1px solid var(--dim);
+}
+#prompt { color:var(--c1); white-space:nowrap; }
+#cmd {
+    flex:1; min-width:4em; background:transparent; border:0; outline:0;
+    color:var(--hi); caret-color:var(--hi); font-size:1em; letter-spacing:.5px; padding:0;
+}
+#cmd:disabled { opacity:.4; }
 
-        .terminal-output {
-            flex-grow: 1;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-break: break-all;
-            padding-right: 10px;
-        }
-        .terminal-output::-webkit-scrollbar { display: none; }
+/* 펑션키 바 (노턴 커맨더식) */
+#fkeys { display:flex; overflow-x:auto; scrollbar-width:none; white-space:nowrap; background:var(--fkn-bg); }
+#fkeys::-webkit-scrollbar { display:none; }
+#fkeys button {
+    flex:1 0 auto; display:flex; border:0; padding:0; margin:0 1px 0 0; cursor:pointer;
+    background:var(--fkl-bg); color:var(--fkl-fg); font-size:.85em;
+}
+#fkeys button b { background:var(--fkn-bg); color:var(--fkn-fg); padding:0 .25em 0 .35em; font-weight:normal; }
+#fkeys button span { padding:0 .5em 0 .25em; flex:1; text-align:left; }
+#fkeys button:hover span, #fkeys button:focus-visible span { background:var(--sel-bg); color:var(--sel-fg); }
+[data-theme="win31"] #fkeys { background:#808080; padding:2px; gap:2px; }
+[data-theme="win31"] #fkeys button { border:2px outset #FFFFFF; margin:0; }
+[data-theme="win31"] #fkeys button:active { border-style:inset; }
 
-        #loading-screen {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #000000;
-            color: #FFFFFF;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            font-size: 24px;
-        }
+/* 상태줄 (통신 프로그램 하단줄) */
+#status {
+    display:flex; white-space:nowrap; overflow:hidden; font-size:.8em;
+    background:var(--bar-bg); color:var(--bar-fg);
+}
+#status > span { padding:0 .7em; border-right:1px solid currentColor; }
+#status > span:last-child { border-right:0; margin-left:auto; }
 
-        #notice-popup {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 170, 0.8);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 500;
-        }
+/* 팝업 */
+#popup {
+    position:absolute; inset:0; z-index:40; display:none;
+    align-items:center; justify-content:center; padding:1em;
+    background:color-mix(in srgb, var(--bg) 70%, transparent);
+}
+#popup.on { display:flex; }
 
-        .popup-box {
-            border: 2px solid #FFFFFF;
-            background-color: #0000AA;
-            padding: 20px;
-            max-width: 90%;
-            box-shadow: 4px 4px 0px rgba(0,0,0,0.5);
-            text-align: left;
-        }
+/* ───────────── 공통 화면 요소 ───────────── */
+.c1{color:var(--c1)} .c2{color:var(--c2)} .c3{color:var(--c3)} .c4{color:var(--c4)} .c5{color:var(--c5)}
+.hi{color:var(--hi)} .dim{color:var(--dim)}
+.inv { background:var(--hi); color:var(--bg); padding:0 .35em; }
+.center { text-align:center; }
+.rule { white-space:nowrap; overflow:hidden; color:var(--dim); line-height:1.1; margin:.35em 0; user-select:none; }
+.rule.c1 { color:var(--c1); } .rule.c3 { color:var(--c3); }
+.pre { white-space:pre-wrap; }
+.gap { height:.7em; }
+.ttl { color:var(--c2); }
+.hint { color:var(--dim); margin-top:.4em; }
+.hint .k { color:var(--c2); }
 
-        @media (max-width: 768px) {
-            body { font-size: 15px; padding: 6px; }
-            #command-input { font-size: 15px; min-width: 100px; flex-grow: 1; }
-            #input-area { flex-wrap: wrap; }
-            #prompt-text { white-space: pre-wrap; margin-bottom: 2px; word-break: keep-all; }
-            .header-bar { flex-direction: column; gap: 4px; align-items: flex-start; }
-            .terminal-output { padding-right: 2px; }
-            
-            /* 모바일에서 팝업 크기 조절 */
-            .popup-box {
-                padding: 15px;
-                max-width: 95%;
-                font-size: 14px;
-            }
-            .popup-box .white-bg { font-size: 18px !important; }
-            
-            /* 모바일에서 메인 화면 타이틀 크기 조절 */
-            #view-main h1 { font-size: 24px; padding: 5px; }
-            #view-main .terminal-output > div:nth-child(4) { font-size: 16px !important; }
-            
-            /* 모바일에서 방 만들기 화면 텍스트 크기 조절 */
-            #view-makeroom .yellow { font-size: 20px !important; }
-            #view-makeroom .cyan, #view-makeroom .green, #view-makeroom > div > div:last-child { font-size: 14px !important; }
-        }
+.box {
+    position:relative; border:4px double var(--fg); padding:1.1em 1.2em .9em;
+    background:var(--bg); box-shadow:.5em .5em 0 var(--shadow); max-width:36em; margin:1em auto;
+}
+.box > .cap {
+    position:absolute; top:-.8em; left:50%; transform:translateX(-50%);
+    background:var(--bg); color:var(--c2); padding:0 .6em; white-space:nowrap;
+}
 
-        /* 큰 화면(PC)을 위한 추가 최적화 (가운데 정렬 및 최대 너비 설정) */
-        @media (min-width: 1024px) {
-            body {
-                align-items: center; /* 전체 요소를 가운데 정렬 */
-                justify-content: center; /* 세로로도 화면 중앙에 오게 함 (선택사항) */
-            }
-            #screen-container, #input-area, #loading-screen > div {
-                width: 100%;
-                /* 화면 너비를 기존 900px에서 700px로 줄여 옛날 모니터 비율에 가깝게 조정 */
-                max-width: 700px; 
-            }
-            /* PC에서 폰트 크기를 조금 키워 가독성 확보 */
-            body {
-                font-size: 20px;
-            }
-            #command-input {
-                font-size: 20px;
-            }
-        }
-    </style>
+/* 블록 로고 */
+.logo-wrap { text-align:center; margin:.6em 0 .2em; }
+.logo {
+    --cell:clamp(4px, calc((100vw - 60px) / 42), 11px);
+    display:inline-grid; gap:1px; grid-auto-rows:var(--cell);
+}
+.logo i { display:block; width:var(--cell); }
+.logo i.on { background:var(--hi); box-shadow:2px 2px 0 var(--shadow); }
+.logo i.on.lo { background:var(--c1); }
+.tagline { text-align:center; color:var(--c1); letter-spacing:.35em; margin:.5em 0 .2em; }
+
+/* 메뉴 */
+.menu { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:.1em 2.2em; max-width:40em; margin:.3em auto; }
+.menu.one { grid-template-columns:minmax(0,1fr); max-width:34em; }
+.mi { display:flex; gap:.6em; padding:.05em .5em; cursor:pointer; align-items:baseline; }
+.mi .k { color:var(--c2); min-width:1.6em; }
+.mi .code { margin-left:auto; color:var(--dim); font-size:.85em; }
+.mi .sub { color:var(--dim); font-size:.85em; }
+.mi:hover, .mi:focus-visible { background:var(--sel-bg); color:var(--sel-fg); outline:0; }
+.mi:hover *, .mi:focus-visible * { color:inherit; }
+.mi.cur .code { color:var(--c3); }
+
+/* 게시판 목록 */
+.bt .r {
+    display:grid; grid-template-columns:3.6em 7.5em 3.6em 3.2em minmax(0,1fr);
+    gap:0 .7em; padding:0 .4em; cursor:pointer;
+}
+.bt .r > span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.bt .r .no, .bt .r .vw { text-align:right; }
+.bt .hd { background:var(--bar-bg); color:var(--bar-fg); cursor:default; }
+.bt .hd > span { color:inherit !important; }
+#screen a { color:var(--c1); }
+#screen a:hover { background:var(--sel-bg); color:var(--sel-fg); }
+.bt .r:not(.hd):hover { background:var(--sel-bg); color:var(--sel-fg); }
+.bt .r:not(.hd):hover * { color:inherit; }
+.bt .au { color:var(--c1); }
+.bt .dt { color:var(--dim); }
+.bt .cc { color:var(--c3); }
+.bt .empty { padding:.6em .4em; color:var(--dim); }
+
+/* 글 읽기 */
+.ph .lab { color:var(--c2); display:inline-block; min-width:3.6em; }
+.ph div { margin:.05em 0; }
+.post-b { white-space:pre-wrap; padding:.3em .2em; color:var(--hi); }
+.cm { padding-left:.4em; }
+.cm .nm { color:var(--c1); }
+.cm .when { color:var(--dim); font-size:.85em; }
+
+/* 대화 */
+.cl .t { color:var(--dim); font-size:.85em; }
+.cl .nm { color:var(--c1); }
+.cl .nm.me { color:var(--c2); }
+.sys { color:var(--c3); }
+.sys.local { color:var(--c2); }
+
+/* 편집기 */
+.ln { display:flex; gap:.6em; }
+.ln .no { color:var(--dim); min-width:2.4em; text-align:right; flex:none; }
+.ln .tx { white-space:pre-wrap; }
+
+/* 표 */
+.tbl .r { display:grid; grid-template-columns:2.6em minmax(6em,10em) minmax(0,1fr) 5.5em; gap:0 .8em; padding:0 .4em; }
+.tbl .hd { background:var(--bar-bg); color:var(--bar-fg); }
+.tbl .r > span { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+
+.sw { display:inline-block; padding:0 .5em; border:1px solid var(--dim); min-width:5.2em; text-align:center; }
+.kv { display:grid; grid-template-columns:9em minmax(0,1fr); gap:.1em 1em; max-width:36em; margin:0 auto; }
+.kv .k { color:var(--c2); }
+.memo { display:flex; gap:.6em; }
+.memo .when { color:var(--dim); flex:none; font-size:.85em; padding-top:.1em; }
+.memo .nm { color:var(--c1); flex:none; }
+
+/* ───────────── 반응형 ───────────── */
+@media (max-width:720px) {
+    :root { --fs:15px; }
+    #screen { padding:.4em .6em; }
+    #inrow { padding:.15em .6em .3em; }
+    #topbar .r .code, #status .opt { display:none; }
+    .menu { grid-template-columns:minmax(0,1fr); gap:.05em; }
+    .bt .r { grid-template-columns:2.8em 3.2em minmax(0,1fr); gap:0 .5em; }
+    .bt .r .au, .bt .r .vw { display:none; }
+    .bt .r .dt { order:1; } .bt .r .ti { order:2; } .bt .r .no { order:0; }
+    .tbl .r { grid-template-columns:2em minmax(0,1fr) 4.2em; }
+    .tbl .r .wh { display:none; }
+    .kv { grid-template-columns:6.5em minmax(0,1fr); }
+    .box { padding:1em .8em .7em; }
+}
+
+@media (min-width:900px) and (min-height:620px) {
+    :root { --fs:19px; }
+    body { background:radial-gradient(ellipse at 50% 35%, #3b3a36, #121211 75%); padding:26px; }
+    #monitor {
+        width:min(1040px, 100%); height:min(820px, 100%);
+        background:linear-gradient(#DCD5C2, #C3BBA4);
+        border-radius:22px; padding:26px 26px 46px;
+        box-shadow:inset 0 2px 0 #F1ECDF, inset 0 -4px 0 #A29A83, 0 24px 60px rgba(0,0,0,.65);
+    }
+    #crt { border-radius:12px; box-shadow:0 0 0 3px #22211E, 0 0 0 6px #8F8874; }
+    .badge {
+        display:block; position:absolute; left:34px; bottom:14px;
+        font-family:'RoundedFixedsys', monospace; font-size:13px; color:#77705C; letter-spacing:2px;
+    }
+    .led {
+        display:block; position:absolute; right:38px; bottom:19px; width:9px; height:9px; border-radius:50%;
+        background:#4CFF6A; box-shadow:0 0 6px #4CFF6A;
+    }
+    .led.off { background:#FFA530; box-shadow:0 0 6px #FFA530; }
+}
+</style>
 </head>
 <body>
-
-    <div id="loading-screen">
-        <div>
-            ATDT 01410<br><br>
-            <span style="color:#55FFFF">실시간 대화방에 접속 중입니다...</span>
+<div id="monitor">
+    <div id="crt">
+        <div id="topbar"><div class="l"></div><div class="r"></div></div>
+        <div id="screen" aria-live="polite"></div>
+        <div id="flash"></div>
+        <div id="inrow">
+            <label id="prompt" for="cmd">&gt;&gt;</label>
+            <input id="cmd" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="send">
         </div>
+        <div id="fkeys"></div>
+        <div id="status"></div>
+        <div id="popup"></div>
     </div>
+    <div class="badge">PC-COLOR 14" · VGA</div>
+    <div class="led" id="led"></div>
+</div>
 
-    <div id="screen-container">
-        
-        <!-- 공지사항 팝업 -->
-        <div id="notice-popup">
-            <div class="popup-box">
-                <div style="text-align: center; margin-bottom: 15px;"><span class="white-bg" style="font-size: 20px;">[ 알 림 마 당 ]</span></div>
-                <div class="green">환영합니다! PC통신 실시간 대화방입니다.</div><br>
-                <div class="cyan">
-                    1. 건전한 통신 예절을 지켜주세요.<br>
-                    2. 메인 화면에서 원하는 대화방을 선택할 수 있습니다.<br>
-                    3. 채팅방 명령어: /j [방이름], /n [닉네임]<br>
-                    4. 폰트 변경: /font [물마루/서궁/Hbios]<br>
-                </div><br>
-                <div class="yellow" style="text-align: center; cursor: pointer;" id="close-popup-btn">
-                    [ 아무 키나 누르시면 창이 닫힙니다 ]
-                </div>
-            </div>
-        </div>
+<script type="module">
+/* =====================================================================
+   설정 & 상수
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyDDhmcLA1UEE-pMdpEoBIz-EPeUdvv8774",
+    authDomain: "pc-communication-chat.firebaseapp.com",
+    projectId: "pc-communication-chat",
+    storageBucket: "pc-communication-chat.firebasestorage.app",
+    messagingSenderId: "932613477787",
+    appId: "1:932613477787:web:3bf6974c59e608bdc07d3e",
+    measurementId: "G-JRV8DCK7FR"
+};
+const FB_BASE = 'https://www.gstatic.com/firebasejs/11.6.1/';
 
-        <!-- 1. 메인 화면 -->
-        <div id="view-main" class="view-section active">
-            <div class="header-bar">
-                <div><span class="white-bg">MAIN</span> <span id="main-title">통신망 메인 화면</span></div>
-            </div>
-            
-            <div class="terminal-output" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                <h1 style="color: #55FFFF; border: 2px dashed #FFF; padding: 10px; display: inline-block;">H I T E L   C H A T</h1>
-                <br><br>
-                <div style="text-align: left; font-size: 20px; line-height: 2;">
-                    <div><span class="yellow">1.</span> 공개 로비 입장하기</div>
-                    <div><span class="yellow">2.</span> 새로운 방 만들기 / 방 이동</div>
-                    <div><span class="yellow">q.</span> 접속 종료</div>
-                </div>
-                <br><br><br>
-                <div class="green">원하시는 메뉴의 번호를 입력해주세요.</div>
-            </div>
-        </div>
+const THEMES = [
+    { id:'blue',  name:'이야기 블루',  desc:'파란 바탕 · 흰 글씨, DOS 통신 프로그램 화면' },
+    { id:'black', name:'검정 VGA',     desc:'검은 바탕 · 회색 글씨, 기본 텍스트 모드' },
+    { id:'green', name:'녹색 모니터',  desc:'허큘리스 녹색 단색 모니터' },
+    { id:'amber', name:'호박색 모니터', desc:'앰버 단색 모니터' },
+    { id:'lcd',   name:'흑백 LCD',     desc:'90년대 초 노트북 흑백 액정' },
+    { id:'win31', name:'윈도 3.1',     desc:'흰 바탕 터미널 창' }
+];
+const FONTS = [
+    { id:'dgm',     name:'둥근모꼴',      css:"'RoundedFixedsys'" },
+    { id:'seogung', name:'서궁',          css:"'Seogung'" },
+    { id:'umdot',   name:'움돋',          css:"'Umdot'" },
+    { id:'story',   name:'이야기 굵은체', css:"'StoryBold'" }
+];
+const SCALES = [ { v:.88, n:'작게' }, { v:1, n:'보통' }, { v:1.14, n:'크게' } ];
 
-        <!-- 2. 방 개설 및 이름 지정 화면 (새로 추가됨) -->
-        <div id="view-makeroom" class="view-section">
-            <div class="header-bar">
-                <div><span class="white-bg">ROOM</span> <span>대화방 개설 및 이동</span></div>
-            </div>
-            <div class="terminal-output" style="display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
-                <div class="green">==================================================</div>
-                <br>
-                <div class="yellow" style="font-size: 24px;">[ 대화방 개설 및 입장 ]</div>
-                <br>
-                <div class="cyan">개설하거나 입장할 대화방의 이름을 정해주세요.</div>
-                <div style="color: #ccc; font-size: 16px; margin-top: 10px;">(이미 존재하는 방 이름을 입력하면 해당 방으로 입장합니다)</div>
-                <br>
-                <div class="green">==================================================</div>
-                <br><br>
-                <div style="color: #fff;">취소하고 메인으로 돌아가려면 빈칸인 상태로 [엔터]를 누르세요.</div>
-            </div>
-        </div>
+const BOARDS = {
+    free:  { name:'자유게시판',   code:'FREE'  },
+    humor: { name:'유머게시판',   code:'HUMOR' },
+    qna:   { name:'묻고답하기',   code:'QNA'   },
+    com:   { name:'컴퓨터/통신', code:'COM'   },
+    art:   { name:'글마당',       code:'ART'   }
+};
+const CLUBS = [
+    { id:'movie', name:'영화사랑', code:'MOVIE', intro:'비디오 가게에서 빌려 본 명작부터 이번 주 개봉작까지.' },
+    { id:'music', name:'음악세상', code:'MUSIC', intro:'카세트테이프, 가요 순위, 직접 찍은 미디 음악 이야기.' },
+    { id:'game',  name:'게임나라', code:'GAME',  intro:'오락실, 패키지 게임, 머드 공략과 수다.' },
+    { id:'pc',    name:'PC사랑방', code:'PCLUB', intro:'하드웨어 · 프로그래밍 · 통신 프로그램 설정 묻고 답하기.' }
+];
+const ROOMS = [
+    { id:'lobby',  name:'공개 로비', sub:'누구나 들어오는 광장' },
+    { id:'수다방',  name:'수다방',    sub:'아무 이야기나' },
+    { id:'음악방',  name:'음악방',    sub:'신청곡 받습니다' },
+    { id:'컴퓨터방', name:'컴퓨터방',  sub:'286부터 펜티엄까지' },
+    { id:'심야방',  name:'심야방',    sub:'전화비 걱정은 잠시 접어두고' }
+];
+const NOTICES = [
+    { title:'PC통신 실시간 대화방에 오신 것을 환영합니다', date:'운영자', body:
+`건전한 통신 예절을 지켜 주세요.
 
-        <!-- 3. 채팅 화면 (기존 view-chat) -->
-        <div id="view-chat" class="view-section">
-            <div class="header-bar">
-                <div><span class="white-bg">CHAT</span> <span id="room-display">실시간 대화방</span></div>
-                <div class="yellow">/j [방이름] | /n [닉네임] | /font [물마루/서궁/Hbios] | /cls | /q</div>
-            </div>
-            <div id="chat-terminal" class="terminal-output"></div>
-        </div>
+ · 상대방을 존중하는 대화를 나눕시다.
+ · 욕설, 도배, 광고는 삼가 주세요.
+ · 개인정보(전화번호, 주소)는 올리지 마세요.
 
-        <!-- 입력 영역 -->
-        <div id="input-area">
-            <span id="prompt-text">선택(1~2, q) >></span>
-            <input type="text" id="command-input" autocomplete="off">
-        </div>
-    </div>
+즐거운 통신 생활 되시길 바랍니다.` },
+    { title:'새 기능 안내 - 게시판 · 동호회 · 한줄메모 · 테마', date:'운영자', body:
+`이제 대화방 말고도 여러 곳을 다닐 수 있습니다.
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+ 3. 게시판   자유 · 유머 · 묻고답하기 · 컴퓨터 · 글마당
+ 4. 동호회   동호회마다 게시판과 대화실이 따로 있습니다
+ 6. 한줄메모 접속 인사를 한 줄 남겨 보세요
+ 7. 접속자   지금 접속한 이용자와 위치를 봅니다
+ 8. 환경설정 테마(화면 색) · 글꼴 · 글자 크기 · 화면 효과` },
+    { title:'명령어 요약', date:'운영자', body:
+`어디서나   P 이전 · T 처음 · H 도움말 · X 접속종료
+           GO 코드  (예: go free, go chat, go memo)
+대화실     /j 방이름   /n 대화명   /w 접속자
+           /font 글꼴   /theme 번호   /cls   /q 나가기
+게시판     번호 = 읽기   W 쓰기   N/B 다음/앞 쪽
+글 쓰기    한 줄씩 입력, /s 저장 · /u 한 줄 지우기 · /a 취소` }
+];
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDDhmcLA1UEE-pMdpEoBIz-EPeUdvv8774",
-            authDomain: "pc-communication-chat.firebaseapp.com",
-            projectId: "pc-communication-chat",
-            storageBucket: "pc-communication-chat.firebasestorage.app",
-            messagingSenderId: "932613477787",
-            appId: "1:932613477787:web:3bf6974c59e608bdc07d3e",
-            measurementId: "G-JRV8DCK7FR"
-        };
+/* =====================================================================
+   유틸
+   ===================================================================== */
+const $ = s => document.querySelector(s);
+const esc = v => (v ?? '').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+const pad = n => String(n).padStart(2,'0');
+const fmtMD = ts => { const d = new Date(ts||0); return `${pad(d.getMonth()+1)}/${pad(d.getDate())}`; };
+const fmtHM = ts => { const d = new Date(ts||0); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const fmtFull = ts => { const d = new Date(ts||0); return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} ${fmtHM(ts)}`; };
+const fmtDur = ms => { const s = Math.max(0, Math.floor(ms/1000)); return `${pad(Math.floor(s/3600))}:${pad(Math.floor(s/60)%60)}:${pad(s%60)}`; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const withTimeout = (p, ms) => Promise.race([p, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms))]);
+const rule = (ch='─', cls='') => `<div class="rule ${cls}">${ch.repeat(240)}</div>`;
+const LS = {
+    get(k, d) { try { const v = localStorage.getItem('pcchat.'+k); return v === null ? d : JSON.parse(v); } catch(e) { return d; } },
+    set(k, v) { try { localStorage.setItem('pcchat.'+k, JSON.stringify(v)); } catch(e) {} }
+};
+const cleanRoom = r => (r || 'lobby').toString().trim().replace(/[\/\\.#$\[\]]/g, '_').slice(0, 30) || 'lobby';
+const errMsg = e => (e && e.code === 'permission-denied')
+    ? '[경고] 서버 규칙(Firestore Rules)이 이 곳의 접근을 막고 있습니다. firestore.rules 를 적용해 주세요.'
+    : `[경고] 통신 오류: ${esc((e && (e.code || e.message)) || e)}`;
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
+/* =====================================================================
+   데이터 계층: 파이어베이스(온라인) / 메모리(오프라인)
+   ===================================================================== */
+function makeRemote(F, db, uid) {
+    const col = (...p) => F.collection(db, ...p);
+    const ref = (...p) => F.doc(db, ...p);
+    const rows = s => s.docs.map(d => ({ id:d.id, ...d.data() }));
+    return {
+        online: true, uid,
+        subChat(room, cb, err) {
+            const q = F.query(col('chat_rooms', room, 'messages'), F.orderBy('timestamp'), F.limitToLast(100));
+            return F.onSnapshot(q, snap => {
+                snap.docChanges().forEach(ch => { if (ch.type === 'added') cb({ id:ch.doc.id, ...ch.doc.data() }); });
+            }, err);
+        },
+        sendChat(room, m) { return F.addDoc(col('chat_rooms', room, 'messages'), { ...m, timestamp:Date.now() }); },
+        async listPosts(b) { return rows(await F.getDocs(F.query(col('boards', b, 'posts'), F.orderBy('timestamp','desc'), F.limit(300)))); },
+        async getPost(b, id) { const d = await F.getDoc(ref('boards', b, 'posts', id)); return d.exists() ? { id:d.id, ...d.data() } : null; },
+        addPost(b, p) { return F.addDoc(col('boards', b, 'posts'), { ...p, uid, views:0, comments:0, timestamp:Date.now() }); },
+        delPost(b, id) { return F.deleteDoc(ref('boards', b, 'posts', id)); },
+        incView(b, id) { return F.updateDoc(ref('boards', b, 'posts', id), { views:F.increment(1) }).catch(() => {}); },
+        async listComments(b, id) { return rows(await F.getDocs(F.query(col('boards', b, 'posts', id, 'comments'), F.orderBy('timestamp')))); },
+        async addComment(b, id, c) {
+            await F.addDoc(col('boards', b, 'posts', id, 'comments'), { ...c, uid, timestamp:Date.now() });
+            F.updateDoc(ref('boards', b, 'posts', id), { comments:F.increment(1) }).catch(() => {});
+        },
+        async listMemos() { return rows(await F.getDocs(F.query(col('memos'), F.orderBy('timestamp','desc'), F.limit(40)))); },
+        addMemo(m) { return F.addDoc(col('memos'), { ...m, uid, timestamp:Date.now() }); },
+        setPresence(p) { return F.setDoc(ref('presence', uid), { ...p, lastSeen:Date.now() }).catch(() => {}); },
+        delPresence() { return F.deleteDoc(ref('presence', uid)).catch(() => {}); },
+        async listWho() { return rows(await F.getDocs(F.query(col('presence'), F.where('lastSeen', '>', Date.now() - 3*60*1000)))); }
+    };
+}
 
-        // 상태 변수 (POPUP, MAIN, CHAT, PROMPT_ROOM)
-        let currentState = 'POPUP';
-        let currentRoom = 'lobby'; 
-        let chatCollection = null;
-        let nickname = "User_" + Math.floor(Math.random() * 9000 + 1000);
-        
-        const ui = {
-            loading: document.getElementById('loading-screen'),
-            noticePopup: document.getElementById('notice-popup'),
-            viewMain: document.getElementById('view-main'),
-            viewMakeroom: document.getElementById('view-makeroom'),
-            viewChat: document.getElementById('view-chat'),
-            promptText: document.getElementById('prompt-text'),
-            commandInput: document.getElementById('command-input'),
-            chatTerminal: document.getElementById('chat-terminal'),
-            roomDisplay: document.getElementById('room-display')
-        };
+function makeLocal() {
+    const uid = 'local';
+    const t0 = Date.now();
+    const chats = {}, subs = {}, posts = {}, comments = {};
+    let seq = 0; const nid = () => 'L' + (++seq);
+    let me = null;
+    posts.free = [
+        { id:nid(), title:'오프라인 모드로 동작 중입니다', author:'운영자', body:'서버에 연결하지 못해 이 컴퓨터 안에서만 동작합니다.\n쓴 글은 새로고침하면 사라집니다.', uid:'sys', views:3, comments:0, timestamp:t0 - 3600e3 }
+    ];
+    const memos = [{ id:nid(), nick:'운영자', text:'오프라인 모드 - 남긴 메모는 이 화면에서만 보입니다.', timestamp:t0 - 600e3 }];
+    return {
+        online: false, uid,
+        subChat(room, cb) {
+            (chats[room] ||= []).forEach(cb);
+            (subs[room] ||= new Set()).add(cb);
+            return () => subs[room].delete(cb);
+        },
+        async sendChat(room, m) {
+            const msg = { id:nid(), ...m, timestamp:Date.now() };
+            (chats[room] ||= []).push(msg); (subs[room] || []).forEach(f => f(msg));
+        },
+        async listPosts(b) { return [...(posts[b] || [])].sort((a, z) => z.timestamp - a.timestamp); },
+        async getPost(b, id) { return (posts[b] || []).find(p => p.id === id) || null; },
+        async addPost(b, p) { (posts[b] ||= []).push({ id:nid(), ...p, uid, views:0, comments:0, timestamp:Date.now() }); },
+        async delPost(b, id) { posts[b] = (posts[b] || []).filter(p => p.id !== id); },
+        async incView(b, id) { const p = (posts[b] || []).find(p => p.id === id); if (p) p.views++; },
+        async listComments(b, id) { return [...(comments[b+id] || [])]; },
+        async addComment(b, id, c) {
+            (comments[b+id] ||= []).push({ id:nid(), ...c, uid, timestamp:Date.now() });
+            const p = (posts[b] || []).find(p => p.id === id); if (p) p.comments++;
+        },
+        async listMemos() { return [...memos].sort((a, z) => z.timestamp - a.timestamp); },
+        async addMemo(m) { memos.push({ id:nid(), ...m, uid, timestamp:Date.now() }); },
+        async setPresence(p) { me = { id:uid, ...p, lastSeen:Date.now() }; },
+        async delPresence() { me = null; },
+        async listWho() { return me ? [me] : []; }
+    };
+}
 
-        let chatUnsubscribe = null;
-        const renderedChatIds = new Set();
-        let isDisconnected = false;
+let DB = makeLocal();
+async function connectServer() {
+    try {
+        const [A, Au, F] = await withTimeout(Promise.all([
+            import(FB_BASE + 'firebase-app.js'),
+            import(FB_BASE + 'firebase-auth.js'),
+            import(FB_BASE + 'firebase-firestore.js')
+        ]), 10000);
+        const app = A.initializeApp(FIREBASE_CONFIG);
+        const auth = Au.getAuth(app);
+        const db = F.getFirestore(app);
+        await withTimeout(Au.signInAnonymously(auth), 10000);
+        DB = makeRemote(F, db, auth.currentUser.uid);
+        return true;
+    } catch (e) {
+        console.warn('서버 연결 실패, 오프라인 모드:', e);
+        DB = makeLocal();
+        return false;
+    }
+}
 
-        async function init() {
+/* =====================================================================
+   화면 엔진
+   ===================================================================== */
+const ui = {
+    root: document.documentElement,
+    topL: $('#topbar .l'), topR: $('#topbar .r'),
+    screen: $('#screen'), flash: $('#flash'),
+    prompt: $('#prompt'), cmd: $('#cmd'),
+    fkeys: $('#fkeys'), status: $('#status'), popup: $('#popup'), led: $('#led')
+};
+
+const S = {
+    nick: LS.get('nick', null) || ('User_' + Math.floor(Math.random()*9000 + 1000)),
+    themeId: LS.get('theme', 'blue'),
+    fontId: LS.get('font', 'dgm'),
+    scaleIdx: LS.get('scale', 1),
+    crt: LS.get('crt', true),
+    connectedAt: 0,
+    stack: [], cur: null, navId: 0,
+    phase: 'boot',          // boot → login → popup → run → dead
+    history: [], hIdx: -1
+};
+
+const isDesktop = () => window.matchMedia('(pointer:fine)').matches && window.innerWidth > 720;
+const focusCmd = () => { if (isDesktop() && !ui.cmd.disabled) ui.cmd.focus({ preventScroll:true }); };
+
+let flashTimer = null;
+function flash(text, ok=false) {
+    ui.flash.textContent = text;
+    ui.flash.classList.toggle('ok', ok);
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(() => { ui.flash.textContent = ''; }, 3200);
+}
+
+function setTop(crumb, code) {
+    const path = ['<span class="svc">HiTEL</span>', ...crumb.map(esc)].join(' ▸ ');
+    ui.topL.innerHTML = path;
+    ui.topR.innerHTML = `<span class="code">${code ? 'go ' + esc(code) + ' │ ' : ''}</span>${esc(S.nick)} │ <span id="clock">${fmtHM(Date.now())}</span>`;
+}
+
+function setPrompt(p) { ui.prompt.innerHTML = esc(p); }
+
+function show(o) {
+    Object.assign(S.cur, o);
+    setTop(S.cur.crumb || [], S.cur.code || '');
+    if (o.html !== undefined) { ui.screen.innerHTML = o.html; ui.screen.scrollTop = 0; }
+    if (o.prompt) setPrompt(o.prompt);
+    if (o.where) { S.where = o.where; heartbeat(); }
+}
+
+function leaveCurrent() {
+    if (S.cur && S.cur.onLeave) { try { S.cur.onLeave(); } catch(e) {} }
+    if (S.cur) S.cur.onLeave = null;
+}
+
+function nav(name, params = {}, opt = {}) {
+    leaveCurrent();
+    if (opt.reset) S.stack = [];
+    if (opt.replace) S.stack.pop();
+    if (opt.push !== false) S.stack.push({ name, params });
+    S.navId++;
+    S.cur = { name, params, id:S.navId, raw:false };
+    ui.flash.textContent = '';
+    screens[name](params, S.navId);
+    focusCmd();
+}
+const stale = id => id !== S.navId;
+const top = () => nav('main', {}, { reset:true });
+function back() {
+    if (S.stack.length > 1) {
+        S.stack.pop();
+        const t = S.stack[S.stack.length - 1];
+        nav(t.name, t.params, { push:false });
+    } else top();
+}
+const setParams = p => { const t = S.stack[S.stack.length - 1]; if (t) Object.assign(t.params, p); };
+
+const GO = {
+    top:['main'], main:['main'], notice:['notice'], chat:['chatMenu'], room:['room'],
+    lobby:['chat', { room:'lobby' }], bbs:['bbs'], club:['clubMenu'], memo:['memo'],
+    who:['who'], set:['settings'], theme:['themes'], font:['fonts'], help:['help']
+};
+Object.entries(BOARDS).forEach(([id, b]) => GO[b.code.toLowerCase()] = ['board', { b:id }]);
+CLUBS.forEach(c => GO[c.code.toLowerCase()] = ['clubHome', { id:c.id }]);
+
+function goCode(code) {
+    const g = GO[(code || '').toLowerCase().trim()];
+    if (!g) { flash(`[${code}] 은(는) 없는 GO 코드입니다. (H: 도움말)`); return; }
+    if (g[0] === 'main') top(); else nav(g[0], { ...(g[1] || {}) });
+}
+
+function globalCmd(v) {
+    const l = v.toLowerCase();
+    if (l === 'p' || l === '이전') { back(); return true; }
+    if (l === 't' || l === 'top' || l === '처음') { top(); return true; }
+    if (l === 'h' || l === '?' || l === 'help' || l === '도움말') { nav('help'); return true; }
+    if (l === 'x' || l === 'bye' || l === '종료') { bye(); return true; }
+    if (l.startsWith('go ')) { goCode(l.slice(3)); return true; }
+    if (l === 'go') { flash('사용법: go 코드  (예: go free)'); return true; }
+    return false;
+}
+function globalSlash(v) {
+    const [c, ...r] = v.split(' ');
+    const l = c.toLowerCase();
+    if (l === '/p' || l === '/q' || l === '/quit') { back(); return true; }
+    if (l === '/t') { top(); return true; }
+    if (l === '/x' || l === '/bye') { bye(); return true; }
+    if (l === '/go') { goCode(r.join(' ')); return true; }
+    return false;
+}
+
+function handle(rawIn) {
+    const raw = rawIn ?? '';
+    const v = raw.trim();
+    if (S.phase === 'dead') { location.reload(); return; }
+    if (S.phase === 'boot') return;
+    if (S.phase === 'popup') { closePopup(); return; }
+    if (S.phase === 'login') { S.cur.onInput(v); return; }
+    if (!S.cur) return;
+    if (v) { S.history.push(v); if (S.history.length > 50) S.history.shift(); }
+    S.hIdx = -1;
+    if (S.cur.raw) {
+        if (v.startsWith('/') && globalSlash(v)) return;
+        S.cur.onInput && S.cur.onInput(raw);
+        return;
+    }
+    if (v && globalCmd(v)) return;
+    S.cur.onInput && S.cur.onInput(v);
+}
+
+ui.cmd.addEventListener('keydown', e => {
+    if (e.isComposing || e.keyCode === 229) return;
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const v = ui.cmd.value; ui.cmd.value = '';
+        handle(v);
+    } else if (e.key === 'ArrowUp' && S.history.length) {
+        e.preventDefault();
+        S.hIdx = S.hIdx < 0 ? S.history.length - 1 : Math.max(0, S.hIdx - 1);
+        ui.cmd.value = S.history[S.hIdx];
+    } else if (e.key === 'ArrowDown' && S.hIdx >= 0) {
+        e.preventDefault();
+        S.hIdx++;
+        if (S.hIdx >= S.history.length) { S.hIdx = -1; ui.cmd.value = ''; } else ui.cmd.value = S.history[S.hIdx];
+    }
+});
+
+/* 펑션키 */
+const FKEYS = [
+    { k:'F1', l:'도움', run:() => nav('help') },
+    { k:'F2', l:'처음', run:() => top() },
+    { k:'F3', l:'대화', run:() => nav('chatMenu') },
+    { k:'F4', l:'게시판', run:() => nav('bbs') },
+    { k:'F6', l:'메모', run:() => nav('memo') },
+    { k:'F7', l:'접속자', run:() => nav('who') },
+    { k:'F8', l:'설정', run:() => nav('settings') },
+    { k:'ESC', l:'이전', run:() => back() },
+    { k:'F10', l:'종료', run:() => bye() }
+];
+ui.fkeys.innerHTML = FKEYS.map((f, i) => `<button type="button" data-fk="${i}"><b>${f.k}</b><span>${f.l}</span></button>`).join('');
+ui.fkeys.addEventListener('click', e => {
+    const b = e.target.closest('[data-fk]'); if (!b) return;
+    if (S.phase === 'popup') { closePopup(); return; }
+    if (S.phase !== 'run') return;
+    FKEYS[+b.dataset.fk].run();
+});
+document.addEventListener('keydown', e => {
+    if (S.phase === 'popup' && (e.key === 'Escape' || e.key.length === 1)) { e.preventDefault(); closePopup(); return; }
+    if (S.phase !== 'run') return;
+    const f = FKEYS.find(f => f.k === e.key || (f.k === 'ESC' && e.key === 'Escape'));
+    if (f) { e.preventDefault(); f.run(); }
+});
+
+/* 클릭으로 메뉴 선택 */
+document.addEventListener('click', e => {
+    const item = e.target.closest('[data-cmd]');
+    if (item && ui.screen.contains(item)) { handle(item.dataset.cmd); return; }
+    if (e.target.closest('#popup') && S.phase === 'popup') { closePopup(); return; }
+    if (!e.target.closest('button, a, input') && window.getSelection().toString() === '') focusCmd();
+    if (e.target.closest('#inrow')) ui.cmd.focus();
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && document.activeElement && document.activeElement.matches('[data-cmd]')) {
+        e.preventDefault(); handle(document.activeElement.dataset.cmd);
+    }
+});
+
+/* 상태줄 */
+function renderStatus() {
+    const on = DB.online;
+    const t = S.connectedAt ? fmtDur(Date.now() - S.connectedAt) : '00:00:00';
+    ui.status.innerHTML =
+        `<span>이야기</span><span class="opt">ATDT 01410</span><span class="opt">19200 N81</span><span class="opt">ANSI</span>` +
+        `<span>${S.phase === 'dead' ? '연결 끊김' : on ? '온라인' : '오프라인'}</span><span>${t}</span>`;
+    ui.led.classList.toggle('off', !on || S.phase === 'dead');
+    const clock = document.getElementById('clock'); if (clock) clock.textContent = fmtHM(Date.now());
+}
+setInterval(renderStatus, 1000);
+
+/* 접속자 위치 갱신 */
+let hbTimer = null;
+function heartbeat() {
+    if (S.phase !== 'run') return;
+    DB.setPresence({ nick:S.nick, where:S.where || '초기화면', since:S.connectedAt });
+}
+
+/* =====================================================================
+   설정 적용
+   ===================================================================== */
+function applyTheme(id) {
+    if (!THEMES.find(t => t.id === id)) id = 'blue';
+    S.themeId = id; ui.root.dataset.theme = id; LS.set('theme', id);
+    const meta = document.querySelector('meta[name=theme-color]') || Object.assign(document.head.appendChild(document.createElement('meta')), { name:'theme-color' });
+    meta.content = getComputedStyle(ui.root).getPropertyValue('--bg').trim();
+}
+function applyFont(id) {
+    const f = FONTS.find(f => f.id === id) || FONTS[0];
+    S.fontId = f.id; ui.root.style.setProperty('--font', f.css); LS.set('font', f.id);
+    return f;
+}
+function applyScale(i) {
+    S.scaleIdx = (i + SCALES.length) % SCALES.length;
+    ui.root.style.setProperty('--scale', SCALES[S.scaleIdx].v); LS.set('scale', S.scaleIdx);
+}
+function applyCrt(on) { S.crt = on; document.body.classList.toggle('crt-on', on); LS.set('crt', on); }
+function setNick(n) {
+    n = (n || '').trim().replace(/\s+/g, '_').slice(0, 12);
+    if (!n) return false;
+    S.nick = n; LS.set('nick', n); heartbeat();
+    if (S.cur) setTop(S.cur.crumb || [], S.cur.code || '');
+    return true;
+}
+function findFont(arg) {
+    const a = (arg || '').trim().toLowerCase();
+    return FONTS.find((f, i) => f.name === arg.trim() || f.id === a || String(i+1) === a
+        || (a === 'hbios' && f.id === 'story') || (a === '이야기' && f.id === 'story') || (a === '둥근모' && f.id === 'dgm'));
+}
+function findTheme(arg) {
+    const a = (arg || '').trim().toLowerCase();
+    return THEMES.find((t, i) => String(i+1) === a || t.id === a || t.name.replace(/\s/g,'') === a.replace(/\s/g,''));
+}
+
+applyTheme(S.themeId); applyFont(S.fontId); applyScale(S.scaleIdx); applyCrt(S.crt);
+
+/* =====================================================================
+   공통 조각
+   ===================================================================== */
+const FONT5 = {
+    H:['10001','10001','10001','11111','10001','10001','10001'],
+    I:['11111','00100','00100','00100','00100','00100','11111'],
+    T:['11111','00100','00100','00100','00100','00100','00100'],
+    E:['11111','10000','10000','11110','10000','10000','11111'],
+    L:['10000','10000','10000','10000','10000','10000','11111']
+};
+function logo(word) {
+    const letters = word.split('').map(c => FONT5[c]);
+    const cols = letters.length * 6 - 1;
+    let cells = '';
+    for (let r = 0; r < 7; r++) {
+        letters.forEach((g, li) => {
+            for (let c = 0; c < 5; c++) cells += `<i class="${g[r][c] === '1' ? 'on' : ''}${r >= 4 ? ' lo' : ''}"></i>`;
+            if (li < letters.length - 1) cells += '<i></i>';
+        });
+    }
+    return `<div class="logo-wrap"><div class="logo" style="grid-template-columns:repeat(${cols}, var(--cell))" aria-label="${word}">${cells}</div></div>`;
+}
+const mi = (k, label, code = '', sub = '', cls = '') =>
+    `<div class="mi ${cls}" data-cmd="${esc(k)}" tabindex="0"><span class="k">${esc(k)}.</span><span>${label}${sub ? ` <span class="sub">${sub}</span>` : ''}</span>${code ? `<span class="code">${esc(code)}</span>` : ''}</div>`;
+const header = (title, sub = '') => `<div class="center"><span class="inv">${esc(title)}</span>${sub ? `<div class="dim" style="margin-top:.3em">${sub}</div>` : ''}</div>${rule('═', 'c1')}`;
+const loading = () => `<div class="dim" style="padding:1em 0">자료를 불러오는 중입니다 ...</div>`;
+const navHint = (extra = '') => `<div class="hint">${extra}${extra ? ' · ' : ''}<span class="k">P</span> 이전 · <span class="k">T</span> 처음 · <span class="k">H</span> 도움말</div>`;
+
+function boardInfo(b) {
+    if (BOARDS[b]) return { name:BOARDS[b].name, code:BOARDS[b].code, crumb:['게시판', BOARDS[b].name] };
+    const c = CLUBS.find(c => 'club_' + c.id === b);
+    if (c) return { name:`${c.name} 게시판`, code:c.code, crumb:['동호회', c.name, '게시판'] };
+    return { name:b, code:'', crumb:['게시판', b] };
+}
+function roomInfo(room) {
+    if (room === 'lobby') return { title:'공개 로비', crumb:['대화실', '공개 로비'] };
+    const c = CLUBS.find(c => 'club_' + c.id === room);
+    if (c) return { title:`[${c.name}] 동호회 대화실`, crumb:['동호회', c.name, '대화실'] };
+    return { title:`[${room}] 대화방`, crumb:['대화실', room] };
+}
+
+/* =====================================================================
+   화면들
+   ===================================================================== */
+const screens = {};
+
+screens.main = () => show({
+    crumb:['초기화면'], code:'TOP', where:'초기화면', prompt:'선택 >>',
+    html: `
+${logo('HITEL')}
+<div class="tagline">P C 통 신 · 실 시 간 대 화 방</div>
+${rule('═', 'c1')}
+<div class="center ttl" style="margin:.2em 0 .4em">[ 주 메 뉴 ]</div>
+<div class="menu">
+    ${mi('1', '알림마당', 'NOTICE')}
+    ${mi('6', '한줄메모', 'MEMO')}
+    ${mi('2', '대화실', 'CHAT')}
+    ${mi('7', '접속자 보기', 'WHO')}
+    ${mi('3', '게시판', 'BBS')}
+    ${mi('8', '환경설정', 'SET')}
+    ${mi('4', '동호회', 'CLUB')}
+    ${mi('9', '도움말', 'HELP')}
+    ${mi('5', '대화방 개설/이동', 'ROOM')}
+    ${mi('X', '접속 종료', 'BYE')}
+</div>
+${rule('─')}
+<div class="center hint">번호나 <span class="k">GO 코드</span>를 입력하세요 (예: <span class="c1">go free</span>) · <span class="k">P</span> 이전 · <span class="k">X</span> 종료</div>
+<div class="center hint" style="margin-top:.8em"><a href="https://github.com/hosain1291/pcchat" target="_blank" rel="noopener">GitHub · hosain1291/pcchat</a></div>`,
+    onInput(v) {
+        const map = { '1':'notice', '2':'chatMenu', '3':'bbs', '4':'clubMenu', '5':'room', '6':'memo', '7':'who', '8':'settings', '9':'help' };
+        if (map[v]) nav(map[v]);
+        else if (v.toLowerCase() === 'q') bye();
+        else if (v) flash('잘못 입력하셨습니다. 메뉴 번호를 입력하세요.');
+    }
+});
+
+screens.notice = () => show({
+    crumb:['알림마당'], code:'NOTICE', where:'알림마당', prompt:'번호 >>',
+    html: header('알 림 마 당', '운영자가 드리는 말씀') +
+        `<div class="bt"><div class="r hd"><span class="no">번호</span><span class="au">글쓴이</span><span class="dt">날짜</span><span class="vw">조회</span><span class="ti">제목</span></div>` +
+        NOTICES.map((n, i) => `<div class="r" data-cmd="${i+1}" tabindex="0"><span class="no">${i+1}</span><span class="au">${n.date}</span><span class="dt">공지</span><span class="vw">-</span><span class="ti">${esc(n.title)}</span></div>`).join('') +
+        `</div>${rule()}${navHint('<span class="k">번호</span> 읽기')}`,
+    onInput(v) {
+        const n = NOTICES[+v - 1];
+        if (n) nav('noticeRead', { i:+v - 1 }); else if (v) flash('없는 번호입니다.');
+    }
+});
+
+screens.noticeRead = ({ i }) => {
+    const n = NOTICES[i];
+    show({
+        crumb:['알림마당', `${i+1}번`], code:'NOTICE', where:'알림마당', prompt:'명령 >>',
+        html: `<div class="ph"><div><span class="lab">제 목</span>: <span class="hi">${esc(n.title)}</span></div><div><span class="lab">글쓴이</span>: ${esc(n.date)}</div></div>${rule()}<div class="post-b">${esc(n.body)}</div>${rule()}${navHint('<span class="k">N</span> 다음 공지 · <span class="k">L</span> 목록')}`,
+        onInput(v) {
+            const l = v.toLowerCase();
+            if (l === 'n') { if (NOTICES[i+1]) nav('noticeRead', { i:i+1 }, { replace:true }); else flash('마지막 공지입니다.'); }
+            else if (l === 'l' || v === '') back();
+            else flash('N 다음 · L 목록 · P 이전');
+        }
+    });
+};
+
+/* 대화실 목록 */
+screens.chatMenu = () => show({
+    crumb:['대화실'], code:'CHAT', where:'대화실 목록', prompt:'방 번호 >>',
+    html: header('대 화 실', '들어갈 대화방을 고르세요') +
+        `<div class="menu one">${ROOMS.map((r, i) => mi(String(i+1), r.name, r.id === 'lobby' ? 'LOBBY' : '', r.sub)).join('')}${mi('0', '방 이름 직접 입력 / 새 방 만들기', 'ROOM')}</div>${rule()}${navHint()}`,
+    onInput(v) {
+        if (v === '0') return nav('room');
+        const r = ROOMS[+v - 1];
+        if (r) nav('chat', { room:r.id }); else if (v) flash('없는 방 번호입니다.');
+    }
+});
+
+/* 대화방 개설 / 이동 */
+screens.room = () => show({
+    crumb:['대화실', '방 개설/이동'], code:'ROOM', where:'대화방 개설', prompt:'방 이름 >>',
+    html: `<div class="box"><span class="cap">[ 대화방 개설 및 입장 ]</span>
+        <div class="c1">개설하거나 입장할 대화방의 이름을 정해 주세요.</div>
+        <div class="dim" style="margin-top:.5em">이미 있는 방 이름을 입력하면 그 방으로 들어갑니다.<br>그냥 [Enter] 를 누르면 취소하고 돌아갑니다.</div></div>`,
+    raw: true,
+    onInput(raw) {
+        const v = raw.trim();
+        if (!v) return back();
+        nav('chat', { room:cleanRoom(v) }, { replace:true });
+    }
+});
+
+/* 대화방 */
+screens.chat = ({ room }) => {
+    room = cleanRoom(room);
+    const R = roomInfo(room);
+    const myId = S.navId;
+    show({
+        crumb:R.crumb, code:'CHAT', where:R.title, prompt:`${S.nick} >`, raw:true,
+        html: `${rule('═', 'c3')}<div class="c2">통신망 ${esc(R.title)}에 오신 것을 환영합니다!</div>
+<div class="c1">당신의 대화명은 [${esc(S.nick)}] 입니다. 명령어는 /h 를 입력하세요.</div>${rule('═', 'c3')}<div id="chatlog"></div>`
+    });
+    const log = $('#chatlog');
+    const nearBottom = () => ui.screen.scrollHeight - ui.screen.scrollTop - ui.screen.clientHeight < 80;
+    const append = html => {
+        const stick = nearBottom();
+        log.insertAdjacentHTML('beforeend', html);
+        if (stick || log.childElementCount < 3) ui.screen.scrollTop = ui.screen.scrollHeight;
+    };
+    const sys = t => append(`<div class="sys local">${esc(t)}</div>`);
+    const line = m => {
+        if (m.type === 'system') return `<div class="sys">${esc(m.text)}</div>`;
+        const me = m.nickname === S.nick;
+        return `<div class="cl"><span class="t">${m.timestamp ? fmtHM(m.timestamp) : ''}</span> <span class="nm${me ? ' me' : ''}">[${esc(m.nickname)}]</span> ${esc(m.text)}</div>`;
+    };
+    const seen = new Set();
+    const unsub = DB.subChat(room, m => {
+        if (stale(myId) || seen.has(m.id)) return;
+        seen.add(m.id); append(line(m));
+    }, e => sys(errMsg(e).replace(/<[^>]+>/g, '')));
+    DB.sendChat(room, { type:'system', text:`*** ${S.nick}님이 들어오셨습니다.`, nickname:S.nick }).catch(() => {});
+
+    S.cur.onLeave = () => {
+        unsub && unsub();
+        DB.sendChat(room, { type:'system', text:`*** ${S.nick}님이 나가셨습니다.`, nickname:S.nick }).catch(() => {});
+    };
+    S.cur.onInput = async raw => {
+        const v = raw.trim();
+        if (!v) return;
+        if (v.startsWith('/')) {
+            const parts = v.split(' ');
+            const c = parts[0].toLowerCase();
+            const arg = parts.slice(1).join(' ').trim();
+            if (c === '/j' || c === '/join') {
+                if (arg) nav('chat', { room:cleanRoom(arg) }, { replace:true });
+                else sys('사용법: /j 방이름  (예: /j 수다방)');
+            } else if (c === '/n' || c === '/nick') {
+                const old = S.nick;
+                if (setNick(arg)) {
+                    setPrompt(`${S.nick} >`);
+                    DB.sendChat(room, { type:'system', text:`*** ${old}님이 대화명을 [${S.nick}](으)로 바꾸셨습니다.`, nickname:S.nick }).catch(() => {});
+                } else sys('사용법: /n 새대화명  (12자까지)');
+            } else if (c === '/font') {
+                const f = arg && findFont(arg);
+                if (f) { applyFont(f.id); sys(`글꼴이 '${f.name}'(으)로 바뀌었습니다.`); }
+                else sys(`사용법: /font ${FONTS.map(f => f.name).join('/')}`);
+            } else if (c === '/theme') {
+                const t = arg && findTheme(arg);
+                if (t) { applyTheme(t.id); sys(`테마가 '${t.name}'(으)로 바뀌었습니다.`); }
+                else sys('사용법: /theme 번호  ' + THEMES.map((t, i) => `${i+1}.${t.name}`).join(' '));
+            } else if (c === '/cls' || c === '/clear') {
+                log.innerHTML = ''; sys('화면이 지워졌습니다.');
+            } else if (c === '/w' || c === '/who') {
+                try {
+                    const list = await DB.listWho();
+                    sys(`현재 접속자 ${list.length}명: ` + list.map(p => `${p.nick}(${p.where || '-'})`).join(', '));
+                } catch(e) { sys(errMsg(e)); }
+            } else if (c === '/h' || c === '/help' || c === '/?') {
+                sys('/j 방이름 · /n 대화명 · /w 접속자 · /font 글꼴 · /theme 번호 · /cls 화면지움 · /q 나가기 · /go 코드');
+            } else sys('알 수 없는 명령어입니다. (/h 도움말)');
+            return;
+        }
+        DB.sendChat(room, { nickname:S.nick, text:v.slice(0, 300), type:'chat' }).catch(e => sys(errMsg(e)));
+    };
+};
+
+/* 게시판 목록 */
+screens.bbs = () => show({
+    crumb:['게시판'], code:'BBS', where:'게시판 목록', prompt:'선택 >>',
+    html: header('게 시 판', '읽고 싶은 게시판을 고르세요') +
+        `<div class="menu one">${Object.entries(BOARDS).map(([id, b], i) => mi(String(i+1), b.name, b.code)).join('')}</div>${rule()}${navHint()}`,
+    onInput(v) {
+        const e = Object.keys(BOARDS)[+v - 1];
+        if (e) nav('board', { b:e }); else if (v) flash('없는 번호입니다.');
+    }
+});
+
+const PAGE = 15;
+screens.board = async ({ b, page = 0 }, id) => {
+    const B = boardInfo(b);
+    show({ crumb:B.crumb, code:B.code, where:B.name, prompt:'번호/명령 >>', html:header(B.name) + loading(), onInput(){} });
+    let posts;
+    try { posts = await DB.listPosts(b); }
+    catch (e) {
+        if (stale(id)) return;
+        show({ html: header(B.name) + `<div class="c4">${errMsg(e)}</div>${rule()}${navHint()}`, onInput(){} });
+        return;
+    }
+    if (stale(id)) return;
+    const total = posts.length;
+    const pages = Math.max(1, Math.ceil(total / PAGE));
+    let pg = Math.min(page, pages - 1);
+    const render = () => {
+        const slice = posts.slice(pg * PAGE, pg * PAGE + PAGE);
+        const rows = slice.map((p, k) => {
+            const no = total - (pg * PAGE + k);
+            return `<div class="r" data-cmd="${no}" tabindex="0"><span class="no">${no}</span><span class="au">${esc(p.author)}</span><span class="dt">${fmtMD(p.timestamp)}</span><span class="vw">${p.views || 0}</span><span class="ti">${esc(p.title)}${p.comments ? ` <span class="cc">[${p.comments}]</span>` : ''}</span></div>`;
+        }).join('');
+        show({ html: header(B.name, `총 ${total}건 · ${pg+1}/${pages}쪽`) +
+            `<div class="bt"><div class="r hd"><span class="no">번호</span><span class="au">글쓴이</span><span class="dt">날짜</span><span class="vw">조회</span><span class="ti">제목</span></div>${rows || '<div class="empty">아직 올라온 글이 없습니다. W 를 눌러 첫 글을 써 보세요.</div>'}</div>` +
+            rule() + navHint('<span class="k">번호</span> 읽기 · <span class="k">W</span> 쓰기 · <span class="k">N</span>/<span class="k">B</span> 다음/앞 쪽 · <span class="k">L</span> 새로고침') });
+    };
+    render();
+    S.cur.onInput = v => {
+        const l = v.toLowerCase();
+        if (/^\d+$/.test(v)) {
+            const idx = total - +v;
+            if (idx >= 0 && idx < total) nav('read', { b, id:posts[idx].id, list:posts.map(p => p.id) });
+            else flash('없는 글 번호입니다.');
+        }
+        else if (l === 'w') nav('write', { b });
+        else if (l === 'n') { if (pg < pages - 1) { pg++; setParams({ page:pg }); render(); } else flash('마지막 쪽입니다.'); }
+        else if (l === 'b') { if (pg > 0) { pg--; setParams({ page:pg }); render(); } else flash('첫 쪽입니다.'); }
+        else if (l === 'l' || v === '') nav('board', { b, page:pg }, { replace:true });
+        else flash('번호 · W 쓰기 · N/B 쪽 넘김 · P 이전');
+    };
+};
+
+/* 글 읽기 */
+screens.read = async ({ b, id: pid, list = [] }, id) => {
+    const B = boardInfo(b);
+    show({ crumb:[...B.crumb, '읽기'], code:B.code, where:B.name, prompt:'명령 >>', html:loading(), onInput(){} });
+    let post, cms;
+    try {
+        if (!S.cur.viewed) { DB.incView(b, pid); S.cur.viewed = true; }
+        [post, cms] = await Promise.all([DB.getPost(b, pid), DB.listComments(b, pid)]);
+    } catch (e) {
+        if (stale(id)) return;
+        show({ html:`<div class="c4">${errMsg(e)}</div>${navHint()}` }); return;
+    }
+    if (stale(id)) return;
+    if (!post) { show({ html:`<div class="c4">삭제되었거나 없는 글입니다.</div>${navHint()}` }); return; }
+    const idx = list.indexOf(pid);
+    const mine = post.uid && post.uid === DB.uid;
+    const no = list.length ? list.length - idx : '';
+    show({
+        html: `<div class="ph">
+<div><span class="lab">제 목</span>: <span class="hi">${esc(post.title)}</span></div>
+<div><span class="lab">글쓴이</span>: <span class="c1">${esc(post.author)}</span> &nbsp; <span class="lab">날짜</span>: ${fmtFull(post.timestamp)} &nbsp; <span class="lab">조회</span>: ${Math.max(1, post.views || 0)}${no ? ` &nbsp; <span class="lab">번호</span>: ${no}` : ''}</div>
+</div>${rule()}<div class="post-b">${esc(post.body)}</div>${rule()}
+<div class="ttl">댓글 ${cms.length}개</div>
+${cms.map(c => `<div class="cm">└ <span class="nm">[${esc(c.author)}]</span> ${esc(c.text)} <span class="when">${fmtMD(c.timestamp)} ${fmtHM(c.timestamp)}</span></div>`).join('') || '<div class="cm dim">└ 아직 댓글이 없습니다.</div>'}
+${rule()}${navHint(`<span class="k">C</span> 댓글 · <span class="k">N</span> 다음글 · <span class="k">A</span> 앞글${mine ? ' · <span class="k">D</span> 삭제' : ''} · <span class="k">L</span> 목록`)}`
+    });
+    const go = j => nav('read', { b, id:list[j], list }, { replace:true });
+    S.cur.onInput = async v => {
+        const mode = S.cur.mode;
+        if (mode === 'comment') {
+            S.cur.mode = null; S.cur.raw = false; setPrompt('명령 >>');
+            const t = v.trim();
+            if (!t) return flash('댓글 쓰기를 취소했습니다.');
+            try { await DB.addComment(b, pid, { author:S.nick, text:t.slice(0, 200) }); }
+            catch (e) { return flash(errMsg(e)); }
+            if (!stale(id)) { S.cur.viewed = true; screens.read({ b, id:pid, list }, id); }
+            return;
+        }
+        if (mode === 'delete') {
+            S.cur.mode = null; setPrompt('명령 >>');
+            if (v.toLowerCase() !== 'y') return flash('삭제를 취소했습니다.');
+            try { await DB.delPost(b, pid); flash('글을 지웠습니다.', true); back(); }
+            catch (e) { flash(errMsg(e)); }
+            return;
+        }
+        const l = v.toLowerCase();
+        if (l === 'c') { S.cur.mode = 'comment'; S.cur.raw = true; setPrompt('댓글 >>'); flash('댓글을 입력하고 Enter (빈 줄이면 취소)', true); }
+        else if (l === 'n') { if (idx >= 0 && idx < list.length - 1) go(idx + 1); else flash('마지막 글입니다.'); }
+        else if (l === 'a') { if (idx > 0) go(idx - 1); else flash('가장 최근 글입니다.'); }
+        else if (l === 'd' && mine) { S.cur.mode = 'delete'; setPrompt('정말 지울까요? (Y/N) >>'); }
+        else if (l === 'l' || v === '') back();
+        else flash('C 댓글 · N 다음글 · A 앞글 · L 목록 · P 이전');
+    };
+};
+
+/* 글쓰기 (줄 편집기) */
+screens.write = ({ b }) => {
+    const B = boardInfo(b);
+    const st = { step:'title', title:'', lines:[] };
+    const render = () => {
+        const body = st.lines.map((t, i) => `<div class="ln"><span class="no">${i+1}:</span><span class="tx">${esc(t) || ' '}</span></div>`).join('');
+        show({
+            crumb:[...B.crumb, '쓰기'], code:B.code, where:`${B.name} (글 쓰는 중)`, raw:true,
+            prompt: st.step === 'title' ? '제목 >>' : `${String(st.lines.length + 1).padStart(3, ' ')}:`,
+            html: header(`${B.name} · 글 쓰기`) +
+                (st.step === 'title'
+                    ? `<div class="c1">제목을 입력하세요. (60자 이내, 빈 줄 Enter 는 취소)</div>`
+                    : `<div class="ph"><div><span class="lab">제 목</span>: <span class="hi">${esc(st.title)}</span></div><div><span class="lab">글쓴이</span>: <span class="c1">${esc(S.nick)}</span></div></div>${rule()}` +
+                      `<div class="c1">본문을 한 줄씩 입력하세요.</div>${body}${rule()}` +
+                      `<div class="hint"><span class="k">/s</span> 저장 · <span class="k">/u</span> 마지막 줄 지우기 · <span class="k">/a</span> 취소 · 빈 줄도 그대로 들어갑니다</div>`)
+        });
+        ui.screen.scrollTop = ui.screen.scrollHeight;
+    };
+    render();
+    S.cur.onInput = async raw => {
+        const t = raw.trim();
+        if (st.step === 'title') {
+            if (!t) return back();
+            st.title = t.slice(0, 60); st.step = 'body'; return render();
+        }
+        const l = t.toLowerCase();
+        if (l === '/s' || t === '.') {
+            if (!st.lines.join('').trim()) return flash('본문이 비어 있습니다.');
+            setPrompt('저장 중 ...');
             try {
-                await signInAnonymously(auth);
-                setTimeout(() => {
-                    ui.loading.style.display = 'none';
-                    ui.noticePopup.style.display = 'flex'; // 팝업 먼저 표시
-                    ui.commandInput.focus();
-                }, 1500); 
-            } catch (error) {
-                console.error("Auth Error:", error);
-                ui.loading.innerHTML = "<span style='color:red'>서버 접속 실패.<br>Firebase 규칙을 확인해주세요.</span>";
-            }
+                await DB.addPost(b, { title:st.title, body:st.lines.join('\n').slice(0, 8000), author:S.nick });
+                flash('글이 올라갔습니다.', true); back();
+            } catch (e) { flash(errMsg(e)); render(); }
+        } else if (l === '/a') { flash('글 쓰기를 취소했습니다.'); back(); }
+        else if (l === '/u') { st.lines.pop(); render(); }
+        else if (st.lines.length >= 200) flash('200줄까지 쓸 수 있습니다. /s 로 저장하세요.');
+        else { st.lines.push(raw.replace(/\s+$/, '').slice(0, 200)); render(); }
+    };
+};
+
+/* 동호회 */
+screens.clubMenu = () => show({
+    crumb:['동호회'], code:'CLUB', where:'동호회 목록', prompt:'선택 >>',
+    html: header('동 호 회', '관심사가 같은 사람들의 모임') +
+        `<div class="menu one">${CLUBS.map((c, i) => mi(String(i+1), c.name, c.code, c.intro)).join('')}</div>${rule()}${navHint()}`,
+    onInput(v) {
+        const c = CLUBS[+v - 1];
+        if (c) nav('clubHome', { id:c.id }); else if (v) flash('없는 번호입니다.');
+    }
+});
+
+screens.clubHome = ({ id }) => {
+    const c = CLUBS.find(c => c.id === id);
+    show({
+        crumb:['동호회', c.name], code:c.code, where:`${c.name} 동호회`, prompt:'선택 >>',
+        html: `<div class="box"><span class="cap">[ ${esc(c.name)} ]</span><div class="c1">${esc(c.intro)}</div><div class="dim" style="margin-top:.4em">GO 코드: ${c.code}</div></div>
+<div class="menu one">${mi('1', '동호회 게시판', 'BBS')}${mi('2', '동호회 대화실', 'CHAT')}</div>${rule()}${navHint()}`,
+        onInput(v) {
+            if (v === '1') nav('board', { b:'club_' + c.id });
+            else if (v === '2') nav('chat', { room:'club_' + c.id });
+            else if (v) flash('1 게시판 · 2 대화실');
         }
+    });
+};
 
-        function switchState(newState) {
-            currentState = newState;
-            ui.viewMain.classList.remove('active');
-            ui.viewMakeroom.classList.remove('active');
-            ui.viewChat.classList.remove('active');
-
-            if (newState === 'MAIN') {
-                ui.viewMain.classList.add('active');
-                ui.promptText.innerText = "선택(1~2, q) >>";
-                if(chatUnsubscribe) { chatUnsubscribe(); chatUnsubscribe = null; }
-            } else if (newState === 'CHAT') {
-                ui.viewChat.classList.add('active');
-                ui.promptText.innerText = "메시지 입력 >>";
-                startRealtimeChat();
-            } else if (newState === 'PROMPT_ROOM') {
-                ui.viewMakeroom.classList.add('active');
-                ui.promptText.innerText = "방 이름 입력 >>";
-            }
+/* 한줄메모 */
+screens.memo = async (_, id) => {
+    show({ crumb:['한줄메모'], code:'MEMO', where:'한줄메모', prompt:'메모 >>', raw:true, html:header('한 줄 메 모') + loading(), onInput(){} });
+    let list;
+    try { list = await DB.listMemos(); }
+    catch (e) { if (!stale(id)) show({ html:header('한 줄 메 모') + `<div class="c4">${errMsg(e)}</div><div class="hint">/p 이전</div>` }); return; }
+    if (stale(id)) return;
+    show({
+        html: header('한 줄 메 모', '접속 인사를 한 줄 남겨 주세요') +
+            (list.map(m => `<div class="memo"><span class="when">${fmtMD(m.timestamp)} ${fmtHM(m.timestamp)}</span><span class="nm">[${esc(m.nick)}]</span><span>${esc(m.text)}</span></div>`).join('') || '<div class="dim">아직 메모가 없습니다.</div>') +
+            rule() + `<div class="hint">글을 쓰고 <span class="k">Enter</span> · 빈 줄 Enter 새로고침 · <span class="k">/p</span> 이전 · <span class="k">/t</span> 처음</div>`
+    });
+    S.cur.onInput = async raw => {
+        const t = raw.trim();
+        if (t) {
+            try { await DB.addMemo({ nick:S.nick, text:t.slice(0, 80) }); }
+            catch (e) { return flash(errMsg(e)); }
         }
+        if (!stale(id)) nav('memo', {}, { replace:true });
+    };
+};
 
-        function startRealtimeChat() {
-            let roomTitle = currentRoom === 'lobby' ? '공개 대화방 (로비)' : `[${currentRoom}] 대화방`;
-            ui.roomDisplay.innerText = roomTitle;
+/* 접속자 */
+screens.who = async (_, id) => {
+    show({ crumb:['접속자 보기'], code:'WHO', where:'접속자 보기', prompt:'명령 >>', html:header('접 속 자') + loading(), onInput(){} });
+    await DB.setPresence({ nick:S.nick, where:'접속자 보기', since:S.connectedAt });
+    let list;
+    try { list = await DB.listWho(); }
+    catch (e) { if (!stale(id)) show({ html:header('접 속 자') + `<div class="c4">${errMsg(e)}</div>${navHint()}` }); return; }
+    if (stale(id)) return;
+    list.sort((a, z) => (a.since || 0) - (z.since || 0));
+    show({
+        html: header('접 속 자', `지금 ${list.length}명이 접속해 있습니다${DB.online ? '' : ' (오프라인 모드)'}`) +
+            `<div class="tbl"><div class="r hd"><span>No</span><span>이용자ID</span><span class="wh">위치</span><span>접속시간</span></div>` +
+            list.map((p, i) => `<div class="r"><span class="dim">${i+1}</span><span class="${p.id === DB.uid ? 'c2' : 'c1'}">${esc(p.nick)}</span><span class="wh">${esc(p.where || '-')}</span><span class="dim">${p.since ? fmtDur(Date.now() - p.since) : '-'}</span></div>`).join('') +
+            `</div>${rule()}${navHint('<span class="k">L</span> 새로고침')}`,
+        onInput(v) { if (v.toLowerCase() === 'l' || v === '') nav('who', {}, { replace:true }); else flash('L 새로고침 · P 이전'); }
+    });
+};
 
-            ui.chatTerminal.innerHTML = `<div class="green">==================================================</div>
-<div class="yellow">통신망 ${roomTitle}에 오신 것을 환영합니다!</div>
-<div class="cyan">당신의 닉네임은 [${nickname}] 입니다. (명령어: /n 닉네임)</div>
-<div class="green">==================================================<br><br></div>`;
-            
-            renderedChatIds.clear();
-
-            if (chatUnsubscribe) chatUnsubscribe();
-            
-            // 방 이름에 따라 파이어베이스 컬렉션 경로 변경
-            chatCollection = collection(db, 'chat_rooms', currentRoom, 'messages');
-
-            chatUnsubscribe = onSnapshot(chatCollection, (snapshot) => {
-                const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-
-                messages.forEach(msg => {
-                    if (!renderedChatIds.has(msg.id)) {
-                        renderedChatIds.add(msg.id);
-                        printChatLine(msg);
-                    }
-                });
-            }, (error) => {
-                printChatLine({ type: 'system', text: `[경고] 실시간 동기화 실패! Firestore 규칙을 확인하세요.` });
-            });
-        }
-
-        function printChatLine(msg) {
-            const line = document.createElement('div');
-            if (msg.type === 'system') {
-                line.innerHTML = `<span class="yellow">${escapeHtml(msg.text)}</span>`;
-            } else {
-                line.innerHTML = `[${escapeHtml(msg.nickname)}] ${escapeHtml(msg.text)}`;
-            }
-            ui.chatTerminal.appendChild(line);
-            ui.chatTerminal.scrollTop = ui.chatTerminal.scrollHeight;
-        }
-
-        function escapeHtml(unsafe) {
-            return (unsafe || '').toString()
-                 .replace(/&/g, "&amp;")
-                 .replace(/</g, "&lt;")
-                 .replace(/>/g, "&gt;")
-                 .replace(/"/g, "&quot;")
-                 .replace(/'/g, "&#039;");
-        }
-
-        ui.commandInput.addEventListener('keydown', async function(e) {
-            if (e.key !== 'Enter' || isDisconnected) return;
-            
-            const cmd = this.value.trim();
-            this.value = '';
-
-            // 1. 팝업 상태일 때 아무 키(엔터 포함)나 누르면 닫힘
-            if (currentState === 'POPUP') {
-                ui.noticePopup.style.display = 'none';
-                switchState('MAIN');
+/* 환경설정 */
+screens.settings = () => {
+    const theme = THEMES.find(t => t.id === S.themeId);
+    const font = FONTS.find(f => f.id === S.fontId);
+    show({
+        crumb:['환경설정'], code:'SET', where:'환경설정', prompt:'선택 >>',
+        html: header('환 경 설 정') + `<div class="menu one">
+${mi('1', '화면 테마', 'THEME', esc(theme.name))}
+${mi('2', '글꼴', 'FONT', esc(font.name))}
+${mi('3', '이용자ID (대화명) 바꾸기', '', esc(S.nick))}
+${mi('4', 'CRT 화면 효과', '', S.crt ? '켜짐' : '꺼짐')}
+${mi('5', '글자 크기', '', SCALES[S.scaleIdx].n)}
+</div>${rule()}${navHint()}`,
+        onInput(v) {
+            if (S.cur.mode === 'nick') {
+                S.cur.mode = null; S.cur.raw = false;
+                if (setNick(v)) { flash(`이용자ID가 [${S.nick}](으)로 바뀌었습니다.`, true); screens.settings(); }
+                else { flash('바꾸기를 취소했습니다.'); setPrompt('선택 >>'); }
                 return;
             }
+            if (v === '1') nav('themes');
+            else if (v === '2') nav('fonts');
+            else if (v === '3') { S.cur.mode = 'nick'; S.cur.raw = true; setPrompt('새 이용자ID >>'); flash('12자 이내로 입력하세요. (빈 줄이면 취소)', true); }
+            else if (v === '4') { applyCrt(!S.crt); screens.settings(); }
+            else if (v === '5') { applyScale(S.scaleIdx + 1); screens.settings(); }
+            else if (v) flash('1~5 중에서 고르세요.');
+        }
+    });
+};
 
-            // 2. 방 이름 입력 상태
-            if (currentState === 'PROMPT_ROOM') {
-                if (cmd === '') {
-                    switchState('MAIN'); // 빈칸이면 취소
-                } else {
-                    currentRoom = cmd;
-                    switchState('CHAT');
-                }
-                return;
-            }
+screens.themes = () => show({
+    crumb:['환경설정', '화면 테마'], code:'THEME', where:'환경설정', prompt:'테마 번호 >>',
+    html: header('화 면 테 마', '번호를 누르면 바로 바뀝니다') + `<div class="menu one">` +
+        THEMES.map((t, i) => {
+            const cur = t.id === S.themeId;
+            return `<div class="mi${cur ? ' cur' : ''}" data-cmd="${i+1}" tabindex="0"><span class="k">${i+1}.</span><span class="sw" data-theme="${t.id}" style="background:var(--bg);color:var(--fg);border-color:var(--bar-bg)">가A<span style="color:var(--c2)">■</span><span style="color:var(--c1)">■</span></span><span>${t.name} <span class="sub">${t.desc}</span></span><span class="code">${cur ? '◀ 사용 중' : ''}</span></div>`;
+        }).join('') + `</div>${rule()}${navHint()}`,
+    onInput(v) {
+        const t = findTheme(v);
+        if (t) { applyTheme(t.id); screens.themes(); flash(`'${t.name}' 테마를 적용했습니다.`, true); }
+        else if (v) flash('없는 테마 번호입니다.');
+    }
+});
 
-            if (cmd === '') return;
+screens.fonts = () => show({
+    crumb:['환경설정', '글꼴'], code:'FONT', where:'환경설정', prompt:'글꼴 번호 >>',
+    html: header('글 꼴', '번호를 누르면 바로 바뀝니다') + `<div class="menu one">` +
+        FONTS.map((f, i) => {
+            const cur = f.id === S.fontId;
+            return `<div class="mi${cur ? ' cur' : ''}" data-cmd="${i+1}" tabindex="0"><span class="k">${i+1}.</span><span style="min-width:6.5em">${f.name}</span><span style="font-family:${f.css}, monospace" class="c1">통신 ABC 0123 ░▒▓</span><span class="code">${cur ? '◀ 사용 중' : ''}</span></div>`;
+        }).join('') + `</div>${rule()}${navHint()}`,
+    onInput(v) {
+        const f = findFont(v);
+        if (f) { applyFont(f.id); screens.fonts(); flash(`'${f.name}' 글꼴을 적용했습니다.`, true); }
+        else if (v) flash('없는 글꼴 번호입니다.');
+    }
+});
 
-            // 3. 메인 메뉴 상태
-            if (currentState === 'MAIN') {
-                if (cmd === '1') {
-                    currentRoom = 'lobby';
-                    switchState('CHAT');
-                } else if (cmd === '2') {
-                    switchState('PROMPT_ROOM');
-                } else if (cmd.toLowerCase() === 'q') {
-                    isDisconnected = true;
-                    ui.commandInput.disabled = true;
-                    ui.viewMain.innerHTML = `<div class="terminal-output" style="padding: 20px;">NO CARRIER<br>통신 연결이 종료되었습니다. (새로고침하여 다시 접속하세요)</div>`;
-                } else {
-                    alert("잘못된 입력입니다. (1, 2, q 중 선택)");
-                }
-                return;
-            }
+/* 도움말 */
+screens.help = () => show({
+    crumb:['도움말'], code:'HELP', where:'도움말', prompt:'명령 >>',
+    html: header('도 움 말') + `
+<div class="ttl">■ 어디서나 쓰는 명령</div>
+<div class="kv">
+<span class="k">P</span><span>이전 메뉴 (ESC)</span>
+<span class="k">T</span><span>처음 화면 (F2)</span>
+<span class="k">H</span><span>도움말 (F1)</span>
+<span class="k">X</span><span>접속 종료 (F10)</span>
+<span class="k">GO 코드</span><span>바로 가기 — TOP NOTICE CHAT LOBBY ROOM BBS ${Object.values(BOARDS).map(b => b.code).join(' ')} CLUB ${CLUBS.map(c => c.code).join(' ')} MEMO WHO SET THEME FONT</span>
+<span class="k">↑ / ↓</span><span>앞서 입력한 내용 다시 부르기</span>
+</div>
+<div class="gap"></div><div class="ttl">■ 대화실 (/ 로 시작)</div>
+<div class="kv">
+<span class="k">/j 방이름</span><span>다른 방으로 이동 (없으면 새로 만듦)</span>
+<span class="k">/n 대화명</span><span>대화명 바꾸기</span>
+<span class="k">/w</span><span>접속자 보기</span>
+<span class="k">/font 이름</span><span>${FONTS.map(f => f.name).join(' / ')}</span>
+<span class="k">/theme 번호</span><span>${THEMES.map((t, i) => `${i+1}.${t.name}`).join(' ')}</span>
+<span class="k">/cls</span><span>화면 지우기</span>
+<span class="k">/q</span><span>방에서 나가기</span>
+</div>
+<div class="gap"></div><div class="ttl">■ 게시판</div>
+<div class="kv">
+<span class="k">번호</span><span>글 읽기</span>
+<span class="k">W</span><span>글 쓰기 — 한 줄씩 입력, /s 저장, /u 줄 지우기, /a 취소</span>
+<span class="k">N / B</span><span>다음 쪽 / 앞 쪽 (읽을 때는 N 다음글 · A 앞글)</span>
+<span class="k">C</span><span>댓글 쓰기 (글 읽는 중)</span>
+<span class="k">D</span><span>내 글 지우기</span>
+</div>
+<div class="gap"></div><div class="ttl">■ 사이트 정보</div>
+<div class="kv">
+<span class="k">접속 주소</span><span><a href="https://hosain1291.github.io/pcchat/" target="_blank" rel="noopener">hosain1291.github.io/pcchat</a></span>
+<span class="k">GitHub</span><span><a href="https://github.com/hosain1291/pcchat" target="_blank" rel="noopener">github.com/hosain1291/pcchat</a></span>
+</div>${rule()}${navHint()}`,
+    onInput(v) { if (v) flash('P 를 누르면 이전 화면으로 돌아갑니다.'); }
+});
 
-            // 4. 채팅 상태
-            if (currentState === 'CHAT') {
-                if (cmd.startsWith('/')) {
-                    const parts = cmd.split(' ');
-                    const mainCmd = parts[0].toLowerCase();
-                    const arg = parts.slice(1).join(' ');
+/* =====================================================================
+   접속 · 로그인 · 종료
+   ===================================================================== */
+function bye() {
+    leaveCurrent();
+    DB.delPresence();
+    clearInterval(hbTimer);
+    const used = fmtDur(Date.now() - S.connectedAt);
+    S.phase = 'dead';
+    setTop(['접속 종료'], '');
+    ui.screen.innerHTML = `
+<div class="pre hi">${esc(S.nick)}님, 이용해 주셔서 감사합니다.
 
-                    if (mainCmd === '/q' || mainCmd === '/quit') {
-                        switchState('MAIN'); // 채팅 종료시 메인으로
-                    } else if (mainCmd === '/j' || mainCmd === '/join') {
-                        if (arg) {
-                            currentRoom = arg;
-                            startRealtimeChat(); // 새 방으로 갱신
-                        } else {
-                            printChatLine({ type: 'system', text: "사용법: /j [방이름] (예: /j 수다방)" });
-                        }
-                    } else if (mainCmd === '/n' || mainCmd === '/nick') {
-                        if (arg) {
-                            nickname = arg;
-                            printChatLine({ type: 'system', text: `닉네임이 [${nickname}](으)로 변경되었습니다.` });
-                        } else {
-                            printChatLine({ type: 'system', text: "사용법: /n [변경할 닉네임]" });
-                        }
-                    } else if (mainCmd === '/font') {
-                        if (arg === '서궁') {
-                            document.body.style.fontFamily = "'suhgung', monospace";
-                            ui.commandInput.style.fontFamily = "'suhgung', monospace";
-                            printChatLine({ type: 'system', text: "폰트가 '서궁'으로 변경되었습니다." });
-                        } else if (arg === '물마루') {
-                            document.body.style.fontFamily = "'Mulmaru', monospace";
-                            ui.commandInput.style.fontFamily = "'Mulmaru', monospace";
-                            printChatLine({ type: 'system', text: "폰트가 '물마루'로 변경되었습니다." });
-                        } else if (arg.toLowerCase() === 'hbios') {
-                            document.body.style.fontFamily = "'HbiosSys', monospace";
-                            ui.commandInput.style.fontFamily = "'HbiosSys', monospace";
-                            printChatLine({ type: 'system', text: "폰트가 'Hbios'로 변경되었습니다." });
-                        } else {
-                            printChatLine({ type: 'system', text: "사용법: /font [물마루/서궁/Hbios]" });
-                        }
-                    } else if (mainCmd === '/cls' || mainCmd === '/clear') {
-                        ui.chatTerminal.innerHTML = '';
-                        printChatLine({ type: 'system', text: "화면이 지워졌습니다." });
-                    } else {
-                        printChatLine({ type: 'system', text: "알 수 없는 명령어입니다." });
-                    }
-                } else {
-                    if(auth.currentUser) {
-                        try {
-                            await addDoc(chatCollection, {
-                                nickname: nickname,
-                                text: cmd,
-                                timestamp: Date.now(),
-                                type: 'chat'
-                            });
-                        } catch(e) { 
-                            console.error(e); 
-                        }
-                    }
-                }
-            }
-        });
+이용 시간 : <span class="c2">${used}</span>
+접속 종료 : ${fmtFull(Date.now())}</div>
+<div class="gap"></div>
+<div class="pre">+++
+ATH0
+OK
 
-        // 팝업 마우스 클릭 닫기 지원
-        document.getElementById('notice-popup').addEventListener('click', () => {
-            if (currentState === 'POPUP') {
-                ui.noticePopup.style.display = 'none';
-                switchState('MAIN');
-            }
-        });
+<span class="c4">NO CARRIER</span></div>
+<div class="gap"></div>
+<div class="dim">다시 접속하려면 [Enter] 를 누르세요.</div>`;
+    setPrompt('>>');
+    renderStatus();
+}
 
-        document.body.addEventListener('click', (e) => {
-            if (e.target.tagName !== 'INPUT' && !isDisconnected && currentState !== 'POPUP') {
-                if (window.innerWidth > 768 || e.target.closest('#input-area')) {
-                    ui.commandInput.focus();
-                }
-            }
-        });
+function openPopup() {
+    S.phase = 'popup';
+    ui.popup.innerHTML = `<div class="box" style="max-width:34em;width:100%;margin:0"><span class="cap">[ 알 림 마 당 ]</span>
+<div class="c3">환영합니다! PC통신 실시간 대화방입니다.</div>
+<div class="gap"></div>
+<div class="c1">1. 건전한 통신 예절을 지켜 주세요.<br>
+2. 새로 생긴 게시판 · 동호회 · 한줄메모를 둘러보세요.<br>
+3. 대화방 명령어: /j 방이름, /n 대화명<br>
+4. 테마 · 글꼴은 8. 환경설정 에서 바꿉니다.</div>
+<div class="gap"></div>
+<div class="c2 center">[ 아무 키나 누르시면 창이 닫힙니다 ]</div></div>`;
+    ui.popup.classList.add('on');
+    focusCmd();
+}
+function closePopup() {
+    ui.popup.classList.remove('on');
+    S.phase = 'run';
+    hbTimer = setInterval(heartbeat, 60000);
+    top();
+}
 
-        init();
+async function boot() {
+    S.phase = 'boot';
+    setTop(['접속 중'], '');
+    setPrompt('>>');
+    ui.cmd.disabled = true;
+    const out = [];
+    const put = (html, cls = '') => { out.push(`<div class="${cls}">${html}</div>`); ui.screen.innerHTML = out.join(''); ui.screen.scrollTop = ui.screen.scrollHeight; };
+    const conn = connectServer();
+    put('이야기 통신 프로그램', 'c1'); put('&nbsp;');
+    await sleep(250); put('ATZ'); await sleep(300); put('OK', 'c3');
+    await sleep(300); put('ATDT 01410'); await sleep(500); put('삐 - 삐리리리 … 치이익 …', 'dim');
+    const ok = await conn;
+    await sleep(300);
+    if (ok) {
+        put('CONNECT 19200/ARQ/V42BIS', 'c3');
+        put('&nbsp;'); put('통신망에 연결되었습니다.', 'hi');
+    } else {
+        put('NO CARRIER', 'c4');
+        put('&nbsp;'); put('서버에 연결하지 못했습니다. 오프라인 모드로 들어갑니다.', 'c2');
+        put('(이 모드에서 쓴 글과 대화는 이 화면에서만 보입니다)', 'dim');
+    }
+    renderStatus();
+    await sleep(400);
+    login(out, put);
+}
 
-    </script>
+function login(out, put) {
+    S.phase = 'login';
+    const last = LS.get('lastLogin', 0);
+    const saved = LS.get('nick', null);
+    put('&nbsp;');
+    put(rule('═', 'c1'));
+    put(`<span class="inv">HiTEL</span> &nbsp;<span class="c1">PC통신 실시간 대화방에 오신 것을 환영합니다</span>`);
+    put(rule('═', 'c1'));
+    put(`이용자ID 를 입력하세요. ${saved ? `그냥 Enter 를 누르면 <span class="c2">${esc(saved)}</span>(으)로 접속합니다.` : '손님은 그냥 Enter 를 누르세요.'}`, 'dim');
+    setTop(['로그인'], '');
+    setPrompt('이용자ID :');
+    ui.cmd.disabled = false;
+    S.cur = { name:'login', crumb:['로그인'] };
+    S.cur.onInput = async v => {
+        if (v) { if (!setNick(v)) return; } else if (!saved) setNick(S.nick);
+        put(`이용자ID : <span class="hi">${esc(S.nick)}</span>`);
+        S.phase = 'boot';
+        ui.cmd.disabled = true;
+        await sleep(250);
+        put('&nbsp;');
+        put(`<span class="c2">${esc(S.nick)}</span>님, 반갑습니다.`);
+        if (last) put(`최근 접속 : ${fmtFull(last)}`, 'dim');
+        put(`오늘 날짜 : ${fmtFull(Date.now())}`, 'dim');
+        LS.set('lastLogin', Date.now());
+        S.connectedAt = Date.now();
+        await sleep(700);
+        ui.cmd.disabled = false;
+        openPopup();
+    };
+    focusCmd();
+}
+
+window.addEventListener('pagehide', () => { if (S.phase === 'run') { leaveCurrent(); DB.delPresence(); } });
+renderStatus();
+boot();
+</script>
 </body>
 </html>
