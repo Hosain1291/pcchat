@@ -278,7 +278,7 @@ button, input { font:inherit; color:inherit; }
 .xfer .bar { color:var(--c3); white-space:nowrap; overflow:hidden; letter-spacing:0; }
 .xfer .err { color:var(--c4); }
 .orig { display:block; max-width:min(100%, 720px); max-height:60vh; object-fit:contain; border:2px solid var(--dim); margin:.4em 0; cursor:zoom-in; }
-.ansi { cursor:zoom-in; display:block; width:min(100%, 640px); image-rendering:pixelated; image-rendering:crisp-edges; border:2px solid var(--dim); margin:.4em 0; }
+.ansi { cursor:zoom-in; display:block; max-width:100%; image-rendering:pixelated; image-rendering:crisp-edges; border:2px solid var(--dim); margin:.4em 0; }
 .pickbtn { background:var(--sel-bg); color:var(--sel-fg); border:0; padding:.1em .8em; cursor:pointer; margin-top:.5em; }
 .viewer { background:#000; border:4px double #AAAAAA; padding:.5em; max-width:96%; max-height:92%; display:flex; flex-direction:column; color:#AAAAAA; box-shadow:.5em .5em 0 rgba(0,0,0,.6); }
 .viewer .vt { background:#AAAAAA; color:#000; padding:0 .5em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1710,7 +1710,7 @@ async function shrinkImage(file) {
 /* 그림을 16색 ANSI 화면처럼 바꿔 그리기 (플로이드-스타인버그 디더링) */
 const CGA = [[0,0,0],[0,0,170],[0,170,0],[0,170,170],[170,0,0],[170,0,170],[170,85,0],[170,170,170],[85,85,85],[85,85,255],[85,255,85],[85,255,255],[255,85,85],[255,85,255],[255,255,85],[255,255,255]];
 function ansiCanvas(im, cols) {
-    const rows = Math.max(8, Math.min(120, Math.round(cols * im.naturalHeight / im.naturalWidth)));
+    const rows = Math.max(8, Math.min(300, Math.round(cols * im.naturalHeight / im.naturalWidth)));
     const cv = document.createElement('canvas'); cv.width = cols; cv.height = rows; cv.className = 'ansi';
     const cx = cv.getContext('2d');
     cx.drawImage(im, 0, 0, cols, rows);
@@ -1808,7 +1808,11 @@ ${navHint(`<span class="k">DN</span> 받기${isPic ? ' · <span class="k">V</spa
             const pv = $('#pv'); if (!pv) return;
             const orig = Object.assign(document.createElement('img'), { src:im.src, alt:f.desc || f.name, className:'orig' });
             orig.dataset.cmd = 'v';
-            const cv = ansiCanvas(im, window.innerWidth < 720 ? 64 : 96);
+            const PX = 2; // 16색 화면의 점 하나 = 2px
+            const cols = Math.max(32, Math.floor(Math.min(pv.clientWidth - 4, 720) / PX));
+            const cv = ansiCanvas(im, cols);
+            cv.style.width = cv.width * PX + 'px';
+            cv.style.height = cv.height * PX + 'px';
             cv.dataset.cmd = 'v';
             const note = document.createElement('div'); note.className = 'dim';
             const paint = () => {
