@@ -2041,9 +2041,11 @@ async function boot() {
 function login(put) {
     S.phase = 'login';
     const lastId = LS.get('lastId', '');
-    let step = 'id', tries = 0, busy = false;
+    let step = 'id', busy = false;
     const form = {};
-    const MAX_TRIES = 3;
+    const MAX_TRIES = 9;            // 이만큼 틀리면
+    const LOCK_MS = 60 * 1000;      // 1분 동안 로그인 제한
+    const failState = () => LS.get('loginFail', { n:0, until:0 });
     const ask = (label, secret = false) => {
         setPrompt(label);
         ui.cmd.type = secret ? 'password' : 'text';
@@ -2068,6 +2070,7 @@ function login(put) {
     setTop(['로그인'], '');
     S.cur = { name:'login', crumb:['로그인'] };
     ask('대화명 :');
+    if (failState().until > Date.now()) lockout();
 
     ui.screen.onclick = e => {
         const b = e.target.closest('[data-login]');
@@ -2078,6 +2081,7 @@ function login(put) {
     };
     const done = async me => {
         ui.screen.onclick = null;
+        LS.set('loginFail', { n:0, until:0 });
         S.me = me;
         S.nick = me.nick;
         DB = NET ? makeRemote(NET.F, NET.db, me.uid) : makeLocal(me.uid);
@@ -2168,17 +2172,36 @@ function login(put) {
         }
     };
     function countFail() {
-        tries++;
-        if (tries >= MAX_TRIES) {
+        const f = failState();
+        f.n = (f.n || 0) + 1;
+        if (f.n >= MAX_TRIES) {
+            LS.set('loginFail', { n:0, until:Date.now() + LOCK_MS });
             put('&nbsp;');
-            put(`${MAX_TRIES}번 틀려서 접속을 끊습니다.`, 'c4');
-            put('NO CARRIER', 'c4');
-            put('다시 접속하려면 [Enter] 를 누르세요.', 'dim');
-            S.phase = 'dead'; ui.cmd.type = 'text'; setPrompt('>>'); ui.cmd.disabled = false; renderStatus();
+            put(`${MAX_TRIES}번 틀려서 1분 동안 로그인할 수 없습니다.`, 'c4');
+            lockout();
             return;
         }
-        put(`(${tries}/${MAX_TRIES}번 틀림)`, 'dim');
+        LS.set('loginFail', { n:f.n, until:0 });
+        put(`(${f.n}/${MAX_TRIES}번 틀림 · ${MAX_TRIES}번 틀리면 1분 제한)`, 'dim');
         step = 'id'; ask('대화명 :');
+    }
+    function lockout() {
+        busy = true; step = 'id';
+        ui.cmd.type = 'text'; ui.cmd.value = ''; ui.cmd.disabled = true;
+        const tick = () => {
+            if (S.phase !== 'login') return;
+            const left = failState().until - Date.now();
+            if (left > 0) {
+                setPrompt(`로그인 제한 ${Math.ceil(left / 1000)}초 남음`);
+                setTimeout(tick, 250);
+                return;
+            }
+            LS.set('loginFail', { n:0, until:0 });
+            busy = false;
+            put('제한이 풀렸습니다. 다시 로그인하세요.', 'c3');
+            ask('대화명 :');
+        };
+        tick();
     }
 }
 
