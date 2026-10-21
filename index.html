@@ -277,7 +277,8 @@ button, input { font:inherit; color:inherit; }
 .xfer .cap { position:absolute; top:-.8em; left:1em; background:var(--bg); color:var(--c1); padding:0 .5em; }
 .xfer .bar { color:var(--c3); white-space:nowrap; overflow:hidden; letter-spacing:0; }
 .xfer .err { color:var(--c4); }
-.ansi { display:block; width:min(100%, 640px); image-rendering:pixelated; image-rendering:crisp-edges; border:2px solid var(--dim); margin:.4em 0; }
+.orig { display:block; max-width:min(100%, 720px); max-height:60vh; object-fit:contain; border:2px solid var(--dim); margin:.4em 0; cursor:zoom-in; }
+.ansi { cursor:zoom-in; display:block; width:min(100%, 640px); image-rendering:pixelated; image-rendering:crisp-edges; border:2px solid var(--dim); margin:.4em 0; }
 .pickbtn { background:var(--sel-bg); color:var(--sel-fg); border:0; padding:.1em .8em; cursor:pointer; margin-top:.5em; }
 .viewer { background:#000; border:4px double #AAAAAA; padding:.5em; max-width:96%; max-height:92%; display:flex; flex-direction:column; color:#AAAAAA; box-shadow:.5em .5em 0 rgba(0,0,0,.6); }
 .viewer .vt { background:#AAAAAA; color:#000; padding:0 .5em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -1400,7 +1401,8 @@ screens.help = () => show({
 </div>
 <div class="gap"></div><div class="ttl">■ 자료실</div>
 <div class="kv">
-<span class="k">번호</span><span>자료 정보 보기 (그림 자료실은 ANSI 미리보기)</span>
+<span class="k">번호</span><span>자료 보기 (그림 자료실은 원본 그림이 바로 보임)</span>
+<span class="k">S</span><span>그림을 16색 ANSI 화면으로 바꿔 보기 / 원본으로 돌아가기</span>
 <span class="k">UP</span><span>자료 올리기 — 설명 입력 → 프로토콜 선택 → 파일 고르기 (최대 1.44MB, 회원만)</span>
 <span class="k">DN 번호</span><span>자료 받기 (보는 중에는 DN 만)</span>
 <span class="k">V</span><span>그림 원본 보기</span>
@@ -1488,7 +1490,7 @@ async function saveChatImage(R, items) {
    ===================================================================== */
 const PDS = {
     file: { name:'공개 자료실', code:'FILE', desc:'프로그램 · 문서 · 음악 등 모든 자료' },
-    pic:  { name:'그림 자료실', code:'PIC',  desc:'사진 · 그림 (보기 전 ANSI 16색 미리보기)' }
+    pic:  { name:'그림 자료실', code:'PIC',  desc:'사진 · 그림 (원본 그대로 보기 · 16색 ANSI 보기)' }
 };
 const DISK = 1457664; // 1.44MB 디스켓 한 장
 const CHUNK = 700000;
@@ -1553,7 +1555,7 @@ async function shrinkImage(file) {
     try {
         const im = await loadImg(url);
         const w = im.naturalWidth, h = im.naturalHeight;
-        if (file.size <= 400 * 1024 && file.type !== 'image/heic') return { blob:file, w, h, type:file.type };
+        if (file.size <= DISK && /^image\/(jpeg|png|gif|webp|bmp)$/.test(file.type)) return { blob:file, w, h, type:file.type };
         let scale = Math.min(1, 1280 / Math.max(w, h)), q = .85, blob;
         for (let k = 0; k < 6; k++) {
             const cv = document.createElement('canvas');
@@ -1658,7 +1660,7 @@ screens.fileRead = async ({ area, id:fid, list = [], dn }, id) => {
 <div><span class="lab">올린이</span>: <span class="c1">${esc(f.author)}</span> &nbsp; <span class="lab">날짜</span>: ${fmtFull(f.timestamp)}</div>
 <div><span class="lab">크기</span>: ${commas(f.size || 0)} 바이트 (${fmtSize(f.size || 0)})${f.w ? ` &nbsp; <span class="lab">해상도</span>: ${f.w}×${f.h}` : ''} &nbsp; <span class="lab">받음</span>: ${f.downloads || 0}회</div>
 </div>${rule()}<div id="pv">${isPic ? '<div class="dim">그림을 불러오는 중 ...</div>' : '<div class="dim">이 자료는 받아서 열어 보세요. (DN)</div>'}</div><div id="xf"></div>${rule()}
-${navHint(`<span class="k">DN</span> 받기${isPic ? ' · <span class="k">V</span> 원본 보기' : ''} · <span class="k">N</span> 다음 · <span class="k">A</span> 앞${mine ? ' · <span class="k">DEL</span> 지우기' : ''} · <span class="k">L</span> 목록`)}` });
+${navHint(`<span class="k">DN</span> 받기${isPic ? ' · <span class="k">V</span> 크게 보기 · <span class="k">S</span> 16색/원본' : ''} · <span class="k">N</span> 다음 · <span class="k">A</span> 앞${mine ? ' · <span class="k">DEL</span> 지우기' : ''} · <span class="k">L</span> 목록`)}` });
 
     const getData = async prog => { if (b64 === null) b64 = await DB.getChunks(area, fid, f.chunks || 1, prog || (() => {})); return b64; };
     if (isPic) {
@@ -1667,10 +1669,17 @@ ${navHint(`<span class="k">DN</span> 받기${isPic ? ' · <span class="k">V</spa
             if (stale(id)) return;
             const im = await loadImg(`data:${f.type};base64,${data}`);
             const pv = $('#pv'); if (!pv) return;
-            pv.innerHTML = `<div class="dim">ANSI 16색 미리보기 · V 를 누르면 원본을 봅니다</div>`;
+            const orig = Object.assign(document.createElement('img'), { src:im.src, alt:f.desc || f.name, className:'orig' });
+            orig.dataset.cmd = 'v';
             const cv = ansiCanvas(im, window.innerWidth < 720 ? 64 : 96);
-            cv.style.cursor = 'zoom-in'; cv.dataset.cmd = 'v';
-            pv.appendChild(cv);
+            cv.dataset.cmd = 'v';
+            const note = document.createElement('div'); note.className = 'dim';
+            const paint = () => {
+                note.textContent = S.cur.ansi ? 'ANSI 16색 보기 · S 원본 · V 크게 보기' : '원본 그림 · S 16색 ANSI 보기 · V 크게 보기';
+                pv.replaceChildren(note, S.cur.ansi ? cv : orig);
+            };
+            S.cur.repaint = paint;
+            paint();
         } catch (e) { const pv = $('#pv'); if (pv) pv.innerHTML = `<div class="c4">그림을 불러오지 못했습니다. ${esc(e.message || '')}</div>`; }
     }
 
@@ -1705,6 +1714,7 @@ ${navHint(`<span class="k">DN</span> 받기${isPic ? ' · <span class="k">V</spa
             return;
         }
         if (l === 'dn' || l === 'd') { S.cur.mode = 'proto'; $('#xf').innerHTML = protoMenu(); setPrompt('프로토콜 >>'); }
+        else if (l === 's' && isPic) { S.cur.ansi = !S.cur.ansi; if (S.cur.repaint) S.cur.repaint(); }
         else if (l === 'v' && isPic) {
             try {
                 const data = await getData();
@@ -1715,7 +1725,7 @@ ${navHint(`<span class="k">DN</span> 받기${isPic ? ' · <span class="k">V</spa
         else if (l === 'a') { if (idx > 0) go(idx - 1); else flash('가장 최근 자료입니다.'); }
         else if (l === 'del' && mine) { S.cur.mode = 'del'; setPrompt('정말 지울까요? (Y/N) >>'); }
         else if (l === 'l' || v === '') back();
-        else flash(`DN 받기${isPic ? ' · V 원본' : ''} · N/A 다음/앞 · L 목록 · P 이전`);
+        else flash(`DN 받기${isPic ? ' · V 크게 · S 16색/원본' : ''} · N/A 다음/앞 · L 목록 · P 이전`);
     };
     if (dn) S.cur.onInput('dn');
 };
