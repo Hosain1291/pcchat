@@ -360,6 +360,7 @@ const FIREBASE_CONFIG = {
     measurementId: "G-JRV8DCK7FR"
 };
 const FB_BASE = 'https://www.gstatic.com/firebasejs/11.6.1/';
+const VERSION = '2026.10.21-g';
 
 const THEMES = [
     { id:'blue',  name:'이야기 블루',  desc:'파란 바탕 · 흰 글씨, DOS 통신 프로그램 화면' },
@@ -445,6 +446,10 @@ const LS = {
 const cleanRoom = r => (r || 'lobby').toString().trim().replace(/[\/\\.#$\[\]]/g, '_').slice(0, 30) || 'lobby';
 const errMsg = e => (e && e.code === 'permission-denied')
     ? '[경고] 서버 규칙(Firestore Rules)이 이 곳의 접근을 막고 있습니다. firestore.rules 를 적용해 주세요.'
+    : (e && e.message === 'timeout')
+    ? '[경고] 서버가 응답하지 않습니다. (시간 초과) 통신 상태를 확인하고 Enter 로 다시 시도하세요.'
+    : (e && (e.code === 'failed-precondition' || e.code === 'unavailable'))
+    ? `[경고] 서버에 연결할 수 없습니다. (${esc(e.code)})`
     : `[경고] 통신 오류: ${esc((e && (e.code || e.message)) || e)}`;
 
 /* =====================================================================
@@ -460,6 +465,7 @@ function makeRemote(F, db, uid) {
     const col = (...p) => F.collection(db, ...p);
     const ref = (...p) => F.doc(db, ...p);
     const rows = s => s.docs.map(d => ({ id:d.id, ...d.data() }));
+    const T = p => withTimeout(p, 12000);
     return {
         online: true, uid,
         subChat(room, cb, err) {
@@ -469,23 +475,23 @@ function makeRemote(F, db, uid) {
             }, err);
         },
         sendChat(room, m) { return F.addDoc(col('chat_rooms', room, 'messages'), { ...m, timestamp:Date.now() }); },
-        async listPosts(b) { return rows(await F.getDocs(F.query(col('boards', b, 'posts'), F.orderBy('timestamp','desc'), F.limit(300)))); },
-        async getPost(b, id) { const d = await F.getDoc(ref('boards', b, 'posts', id)); return d.exists() ? { id:d.id, ...d.data() } : null; },
+        async listPosts(b) { return rows(await T(F.getDocs(F.query(col('boards', b, 'posts'), F.orderBy('timestamp','desc'), F.limit(300))))); },
+        async getPost(b, id) { const d = await T(F.getDoc(ref('boards', b, 'posts', id))); return d.exists() ? { id:d.id, ...d.data() } : null; },
         addPost(b, p) { return F.addDoc(col('boards', b, 'posts'), { ...p, uid, views:0, comments:0, timestamp:Date.now() }); },
         delPost(b, id) { return F.deleteDoc(ref('boards', b, 'posts', id)); },
         incView(b, id) { return F.updateDoc(ref('boards', b, 'posts', id), { views:F.increment(1) }).catch(() => {}); },
-        async listComments(b, id) { return rows(await F.getDocs(F.query(col('boards', b, 'posts', id, 'comments'), F.orderBy('timestamp')))); },
+        async listComments(b, id) { return rows(await T(F.getDocs(F.query(col('boards', b, 'posts', id, 'comments'), F.orderBy('timestamp'))))); },
         async addComment(b, id, c) {
             await F.addDoc(col('boards', b, 'posts', id, 'comments'), { ...c, uid, timestamp:Date.now() });
             F.updateDoc(ref('boards', b, 'posts', id), { comments:F.increment(1) }).catch(() => {});
         },
-        async listMemos() { return rows(await F.getDocs(F.query(col('memos'), F.orderBy('timestamp','desc'), F.limit(40)))); },
+        async listMemos() { return rows(await T(F.getDocs(F.query(col('memos'), F.orderBy('timestamp','desc'), F.limit(40))))); },
         addMemo(m) { return F.addDoc(col('memos'), { ...m, uid, timestamp:Date.now() }); },
         setPresence(p) { return F.setDoc(ref('presence', uid), { ...p, lastSeen:Date.now() }).catch(() => {}); },
         delPresence() { return F.deleteDoc(ref('presence', uid)).catch(() => {}); },
-        async listWho() { return rows(await F.getDocs(F.query(col('presence'), F.where('lastSeen', '>', Date.now() - 3*60*1000)))); },
+        async listWho() { return rows(await T(F.getDocs(F.query(col('presence'), F.where('lastSeen', '>', Date.now() - 3*60*1000))))); },
         /* 회원이 만든 동호회 */
-        async listClubs() { return rows(await F.getDocs(F.query(col('clubs'), F.orderBy('timestamp')))); },
+        async listClubs() { return rows(await T(F.getDocs(F.query(col('clubs'), F.orderBy('timestamp'))))); },
         addClub(id, c) { return F.setDoc(ref('clubs', id), { ...c, owner:uid, timestamp:Date.now() }); },
         delClub(id) { return F.deleteDoc(ref('clubs', id)); },
         /* 자료실: 파일을 base64 조각으로 나눠 Firestore 에 저장 */
@@ -498,8 +504,8 @@ function makeRemote(F, db, uid) {
             });
             await F.setDoc(ref('pds', area, 'items', id), { ...meta, uid, downloads:0, chunks:chunks.length, timestamp:Date.now() });
         },
-        async listFiles(area) { return rows(await F.getDocs(F.query(col('pds', area, 'items'), F.orderBy('timestamp','desc'), F.limit(200)))); },
-        async getFile(area, id) { const d = await F.getDoc(ref('pds', area, 'items', id)); return d.exists() ? { id:d.id, ...d.data() } : null; },
+        async listFiles(area) { return rows(await T(F.getDocs(F.query(col('pds', area, 'items'), F.orderBy('timestamp','desc'), F.limit(200))))); },
+        async getFile(area, id) { const d = await T(F.getDoc(ref('pds', area, 'items', id))); return d.exists() ? { id:d.id, ...d.data() } : null; },
         async getChunks(area, id, n, prog) {
             const out = new Array(n);
             let done = 0;
@@ -712,7 +718,7 @@ function nav(name, params = {}, opt = {}) {
     if (opt.replace) S.stack.pop();
     if (opt.push !== false) S.stack.push({ name, params });
     S.navId++;
-    S.cur = { name, params, id:S.navId, raw:false };
+    S.cur = { name, params, id:S.navId, raw:false, onInput:v => { if (v) flash('잘못 입력하셨습니다. (H 도움말 · P 이전)'); } };
     ui.flash.textContent = '';
     screens[name](params, S.navId);
     focusCmd();
@@ -725,6 +731,19 @@ function back() {
         const t = S.stack[S.stack.length - 1];
         nav(t.name, t.params, { push:false });
     } else top();
+}
+const waitInput = v => flash('자료를 불러오는 중입니다. 잠시만 기다리세요. (P 이전 · T 처음)');
+function showError(e, headHtml = '') {
+    show({
+        html: `${headHtml}<div class="c4">${errMsg(e)}</div>${rule()}<div class="hint"><span class="k">Enter</span> 다시 시도 · <span class="k">P</span> 이전 · <span class="k">T</span> 처음</div>`,
+        onInput: v => {
+            const l = (v || '').trim().toLowerCase();
+            if (l === '' || l === 'l' || l === 'r') nav(S.cur.name, S.cur.params, { replace:true });
+            else if (l === '/p' || l === '/q') back();
+            else if (l === '/t') top();
+            else flash('Enter 다시 시도 · P 이전 · T 처음');
+        }
+    });
 }
 const setParams = p => { const t = S.stack[S.stack.length - 1]; if (t) Object.assign(t.params, p); };
 
@@ -757,8 +776,44 @@ function goCode(code) {
     if (g[0] === 'main') top(); else nav(g[0], { ...(g[1] || {}) });
 }
 
+/* 글꼴 · 테마 · 화면효과 · 글자크기: 어느 화면에서든 (대화실에서는 / 를 붙여서) */
+function settingCmd(c, arg) {
+    c = c.replace(/^\//, '').toLowerCase();
+    const refresh = () => { if (S.cur && ['themes', 'fonts', 'settings'].includes(S.cur.name)) nav(S.cur.name, S.cur.params, { replace:true }); };
+    if (['font', 'fonts', '글꼴', '폰트'].includes(c)) {
+        if (!arg) { nav('fonts'); return true; }
+        const f = findFont(arg);
+        if (f) { applyFont(f.id); refresh(); flash(`글꼴이 '${f.name}'(으)로 바뀌었습니다.`, true); }
+        else flash(`없는 글꼴입니다. ${FONTS.map((f, i) => `${i+1}.${f.name}`).join(' ')}`);
+        return true;
+    }
+    if (['theme', 'themes', '테마'].includes(c)) {
+        if (!arg) { nav('themes'); return true; }
+        const t = findTheme(arg);
+        if (t) { applyTheme(t.id); refresh(); flash(`테마가 '${t.name}'(으)로 바뀌었습니다.`, true); }
+        else flash(`없는 테마입니다. ${THEMES.map((t, i) => `${i+1}.${t.name}`).join(' ')}`);
+        return true;
+    }
+    if (['crt', '화면효과'].includes(c)) {
+        const a = (arg || '').toLowerCase();
+        applyCrt(a === 'on' || a === '켜기' ? true : a === 'off' || a === '끄기' ? false : !S.crt);
+        refresh(); flash(`CRT 화면 효과를 ${S.crt ? '켰' : '껐'}습니다.`, true);
+        return true;
+    }
+    if (['size', '크기', '글자크기'].includes(c)) {
+        const a = (arg || '').trim();
+        const i = SCALES.findIndex((x, k) => x.n === a || String(k+1) === a);
+        applyScale(i >= 0 ? i : S.scaleIdx + 1);
+        refresh(); flash(`글자 크기: ${SCALES[S.scaleIdx].n}`, true);
+        return true;
+    }
+    return false;
+}
+
 function globalCmd(v) {
     const l = v.toLowerCase();
+    if (l.startsWith('/') && globalSlash(v)) return true;
+    { const [c, ...r] = v.split(/\s+/); if (settingCmd(c, r.join(' '))) return true; }
     if (l === 'p' || l === '이전') { back(); return true; }
     if (l === 't' || l === 'top' || l === '처음') { top(); return true; }
     if (l === 'h' || l === '?' || l === 'help' || l === '도움말') { nav('help'); return true; }
@@ -774,6 +829,7 @@ function globalSlash(v) {
     if (l === '/t') { top(); return true; }
     if (l === '/x' || l === '/bye') { bye(); return true; }
     if (l === '/go') { goCode(r.join(' ')); return true; }
+    if (settingCmd(l, r.join(' ').trim())) return true;
     return false;
 }
 
@@ -832,9 +888,10 @@ function handle(rawIn) {
         S.cur.onInput && S.cur.onInput(raw);
         return;
     }
-    v = fixCmd(v);
-    if (v && globalCmd(v)) return;
-    S.cur.onInput && S.cur.onInput(v);
+    if (v && globalCmd(v)) return;          // 그대로 먼저 (font 탕바, 테마 3, 이전 ...)
+    const q = fixCmd(v);                    // 안 되면 한글 자판으로 친 영문 명령인지
+    if (q !== v && globalCmd(q)) return;
+    S.cur.onInput && S.cur.onInput(q);
 }
 
 /* Enter 처리: 한글 조합 중이거나 휴대폰 자판이어도 한 번에 들어가게 */
@@ -957,12 +1014,19 @@ function setNick(n) {
 }
 function findFont(arg) {
     const a = (arg || '').trim().toLowerCase();
+    if (!a) return null;
+    const exact = findFontExact(arg, a);
+    return exact || FONTS.find(f => f.name.replace(/\s/g, '').includes(a.replace(/\s/g, '')));
+}
+function findFontExact(arg, a) {
     return FONTS.find((f, i) => f.name === arg.trim() || f.id === a || String(i+1) === a
         || (a === 'hbios' && f.id === 'story') || (a === '이야기' && f.id === 'story') || (a === '둥근모' && f.id === 'dgm'));
 }
 function findTheme(arg) {
-    const a = (arg || '').trim().toLowerCase();
-    return THEMES.find((t, i) => String(i+1) === a || t.id === a || t.name.replace(/\s/g,'') === a.replace(/\s/g,''));
+    const a = (arg || '').trim().toLowerCase().replace(/\s/g, '');
+    if (!a) return null;
+    return THEMES.find((t, i) => String(i+1) === a || t.id === a || t.name.replace(/\s/g,'').toLowerCase() === a)
+        || THEMES.find(t => t.name.replace(/\s/g,'').toLowerCase().includes(a));
 }
 
 applyTheme(S.themeId); applyFont(S.fontId); applyScale(S.scaleIdx); applyCrt(S.crt);
@@ -1194,12 +1258,12 @@ screens.bbs = () => show({
 const PAGE = 15;
 screens.board = async ({ b, page = 0 }, id) => {
     const B = boardInfo(b);
-    show({ crumb:B.crumb, code:B.code, where:B.name, prompt:'번호/명령 >>', html:header(B.name) + loading(), onInput(){} });
+    show({ crumb:B.crumb, code:B.code, where:B.name, prompt:'번호/명령 >>', html:header(B.name) + loading(), onInput:waitInput });
     let posts;
     try { posts = await DB.listPosts(b); }
     catch (e) {
         if (stale(id)) return;
-        show({ html: header(B.name) + `<div class="c4">${errMsg(e)}</div>${rule()}${navHint()}`, onInput(){} });
+        showError(e, header(B.name));
         return;
     }
     if (stale(id)) return;
@@ -1235,14 +1299,14 @@ screens.board = async ({ b, page = 0 }, id) => {
 /* 글 읽기 */
 screens.read = async ({ b, id: pid, list = [] }, id) => {
     const B = boardInfo(b);
-    show({ crumb:[...B.crumb, '읽기'], code:B.code, where:B.name, prompt:'명령 >>', html:loading(), onInput(){} });
+    show({ crumb:[...B.crumb, '읽기'], code:B.code, where:B.name, prompt:'명령 >>', html:loading(), onInput:waitInput });
     let post, cms;
     try {
         if (!S.cur.viewed) { DB.incView(b, pid); S.cur.viewed = true; }
         [post, cms] = await Promise.all([DB.getPost(b, pid), DB.listComments(b, pid)]);
     } catch (e) {
         if (stale(id)) return;
-        show({ html:`<div class="c4">${errMsg(e)}</div>${navHint()}` }); return;
+        showError(e); return;
     }
     if (stale(id)) return;
     if (!post) { show({ html:`<div class="c4">삭제되었거나 없는 글입니다.</div>${navHint()}` }); return; }
@@ -1329,7 +1393,7 @@ screens.write = ({ b }) => {
 
 /* 동호회 */
 screens.clubMenu = async (_, id) => {
-    show({ crumb:['동호회'], code:'CLUB', where:'동호회 목록', prompt:'선택 >>', html:header('동 호 회') + loading(), onInput(){} });
+    show({ crumb:['동호회'], code:'CLUB', where:'동호회 목록', prompt:'선택 >>', html:header('동 호 회') + loading(), onInput:waitInput });
     S.clubErr = null;
     await loadClubs();
     if (stale(id)) return;
@@ -1451,10 +1515,10 @@ screens.clubNew = () => {
 
 /* 한줄메모 */
 screens.memo = async (_, id) => {
-    show({ crumb:['한줄메모'], code:'MEMO', where:'한줄메모', prompt:'메모 >>', raw:true, html:header('한 줄 메 모') + loading(), onInput(){} });
+    show({ crumb:['한줄메모'], code:'MEMO', where:'한줄메모', prompt:'메모 >>', raw:true, html:header('한 줄 메 모') + loading(), onInput:waitInput });
     let list;
     try { list = await DB.listMemos(); }
-    catch (e) { if (!stale(id)) show({ html:header('한 줄 메 모') + `<div class="c4">${errMsg(e)}</div><div class="hint">/p 이전</div>` }); return; }
+    catch (e) { if (!stale(id)) showError(e, header('한 줄 메 모')); return; }
     if (stale(id)) return;
     show({
         html: header('한 줄 메 모', '접속 인사를 한 줄 남겨 주세요') +
@@ -1473,11 +1537,11 @@ screens.memo = async (_, id) => {
 
 /* 접속자 */
 screens.who = async (_, id) => {
-    show({ crumb:['접속자 보기'], code:'WHO', where:'접속자 보기', prompt:'명령 >>', html:header('접 속 자') + loading(), onInput(){} });
+    show({ crumb:['접속자 보기'], code:'WHO', where:'접속자 보기', prompt:'명령 >>', html:header('접 속 자') + loading(), onInput:waitInput });
     await DB.setPresence({ nick:S.nick, where:'접속자 보기', since:S.connectedAt });
     let list;
     try { list = await DB.listWho(); }
-    catch (e) { if (!stale(id)) show({ html:header('접 속 자') + `<div class="c4">${errMsg(e)}</div>${navHint()}` }); return; }
+    catch (e) { if (!stale(id)) showError(e, header('접 속 자')); return; }
     if (stale(id)) return;
     list.sort((a, z) => (a.since || 0) - (z.since || 0));
     show({
@@ -1559,8 +1623,12 @@ screens.help = () => show({
 <span class="k">H</span><span>도움말 (F1)</span>
 <span class="k">X</span><span>접속 종료 (F10)</span>
 <span class="k">GO 코드</span><span>바로 가기 — TOP NOTICE CHAT LOBBY ROOM BBS ${Object.values(BOARDS).map(b => b.code).join(' ')} CLUB ${allClubs().map(c => c.code).join(' ')} MEMO WHO SET THEME FONT</span>
+<span class="k">font 이름</span><span>글꼴 바꾸기 — ${FONTS.map((f, i) => `${i+1}.${f.name}`).join(' ')} (예: font 탕바, font 2)</span>
+<span class="k">theme 번호</span><span>테마 바꾸기 — ${THEMES.map((t, i) => `${i+1}.${t.name}`).join(' ')} (예: theme 3, theme 녹색)</span>
+<span class="k">crt / size</span><span>CRT 화면 효과 켜고 끄기 / 글자 크기 (작게 · 보통 · 크게)</span>
 <span class="k">↑ / ↓</span><span>앞서 입력한 내용 다시 부르기</span>
 </div>
+<div class="dim">대화실 · 한줄메모 · 글쓰기 중에는 앞에 / 를 붙이세요. (예: /font 탕바, /theme 2)</div>
 <div class="gap"></div><div class="ttl">■ 대화실 (/ 로 시작)</div>
 <div class="kv">
 <span class="k">/j 방이름</span><span>다른 방으로 이동 (없으면 새로 만듦)</span>
@@ -1597,6 +1665,7 @@ screens.help = () => show({
 <div class="gap"></div><div class="ttl">■ 사이트 정보</div>
 <div class="kv">
 <span class="k">접속 주소</span><span><a href="https://hosain1291.github.io/pcchat/" target="_blank" rel="noopener">hosain1291.github.io/pcchat</a></span>
+<span class="k">버전</span><span>${VERSION}</span>
 <span class="k">GitHub</span><span><a href="https://github.com/hosain1291/pcchat" target="_blank" rel="noopener">github.com/hosain1291/pcchat</a></span>
 </div>${rule()}${navHint()}`,
     onInput(v) { if (v) flash('P 를 누르면 이전 화면으로 돌아갑니다.'); }
@@ -1800,10 +1869,10 @@ screens.pdsMenu = () => show({
 
 screens.files = async ({ area, page = 0 }, id) => {
     const A = PDS[area];
-    show({ crumb:['자료실', A.name], code:A.code, where:A.name, prompt:'번호/명령 >>', html:header(A.name) + loading(), onInput(){} });
+    show({ crumb:['자료실', A.name], code:A.code, where:A.name, prompt:'번호/명령 >>', html:header(A.name) + loading(), onInput:waitInput });
     let list;
     try { list = await DB.listFiles(area); }
-    catch (e) { if (!stale(id)) show({ html:header(A.name) + `<div class="c4">${errMsg(e)}</div>${rule()}${navHint()}` }); return; }
+    catch (e) { if (!stale(id)) showError(e, header(A.name)); return; }
     if (stale(id)) return;
     const total = list.length, pages = Math.max(1, Math.ceil(total / PAGE));
     let pg = Math.min(page, pages - 1);
@@ -1837,10 +1906,10 @@ screens.files = async ({ area, page = 0 }, id) => {
 
 screens.fileRead = async ({ area, id:fid, list = [], dn }, id) => {
     const A = PDS[area];
-    show({ crumb:['자료실', A.name, '자료 보기'], code:A.code, where:A.name, prompt:'명령 >>', html:loading(), onInput(){} });
+    show({ crumb:['자료실', A.name, '자료 보기'], code:A.code, where:A.name, prompt:'명령 >>', html:loading(), onInput:waitInput });
     let f;
     try { f = await DB.getFile(area, fid); }
-    catch (e) { if (!stale(id)) show({ html:`<div class="c4">${errMsg(e)}</div>${navHint()}` }); return; }
+    catch (e) { if (!stale(id)) showError(e); return; }
     if (stale(id)) return;
     if (!f) { show({ html:`<div class="c4">지워졌거나 없는 자료입니다.</div>${navHint()}` }); return; }
     const idx = list.indexOf(fid);
@@ -2075,7 +2144,7 @@ async function boot() {
     const out = [];
     const put = (html, cls = '') => { out.push(`<div class="${cls}">${html}</div>`); ui.screen.innerHTML = out.join(''); ui.screen.scrollTop = ui.screen.scrollHeight; };
     const conn = connectServer();
-    put('이야기 통신 프로그램', 'c1'); put('&nbsp;');
+    put(`My Way 통신 프로그램 Ver ${VERSION}`, 'c1'); put('&nbsp;');
     await sleep(250); put('ATZ'); await sleep(300); put('OK', 'c3');
     await sleep(300); put('ATDT 01410'); await sleep(500); put('삐 - 삐리리리 … 치이익 …', 'dim');
     const ok = await conn;
@@ -2261,6 +2330,8 @@ function login(put) {
     }
 }
 
+window.addEventListener('error', e => flash(`[오류] ${e.message || e}`));
+window.addEventListener('unhandledrejection', e => { const r = e.reason || {}; flash(`[오류] ${r.code || r.message || r}`); });
 window.addEventListener('pagehide', () => { if (S.phase === 'run') { leaveCurrent(); DB.delPresence(); } });
 renderStatus();
 boot();
