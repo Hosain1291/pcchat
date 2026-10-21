@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>PC통신 실시간 대화방</title>
-<meta name="description" content="PC통신 시절 화면을 고증한 실시간 대화방 · 게시판 · 동호회 · 한줄메모">
+<title>My Way PC통신</title>
+<meta name="description" content="My Way PC통신 - PC통신 시절 화면을 고증한 실시간 대화방 · 게시판 · 동호회 · 한줄메모">
 <style>
 /* ───────────── 글꼴 ───────────── */
 @font-face {
@@ -22,6 +22,12 @@
 @font-face {
     font-family: 'Umdot';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-4@1.1/Umdot12.woff2') format('woff2');
+    font-weight: normal;
+    font-display: swap;
+}
+@font-face {
+    font-family: 'Tangba';
+    src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2601-4@1.1/Tangba12.woff2') format('woff2');
     font-weight: normal;
     font-display: swap;
 }
@@ -115,6 +121,8 @@ button, input { font:inherit; color:inherit; }
     background:var(--bar-bg); color:var(--bar-fg); padding:.05em .6em;
 }
 #topbar .l, #topbar .r { overflow:hidden; text-overflow:ellipsis; }
+#topbar .l { flex:1; min-width:0; }
+#topbar .r { flex:none; }
 #topbar .svc { font-weight:bold; }
 
 /* 화면 */
@@ -264,6 +272,20 @@ button, input { font:inherit; color:inherit; }
 .memo .when { color:var(--dim); flex:none; font-size:.85em; padding-top:.1em; }
 .memo .nm { color:var(--c1); flex:none; }
 
+/* 자료실 · 전송 화면 */
+.xfer { border:4px double var(--c1); padding:.8em 1em; margin:.8em 0; max-width:36em; position:relative; }
+.xfer .cap { position:absolute; top:-.8em; left:1em; background:var(--bg); color:var(--c1); padding:0 .5em; }
+.xfer .bar { color:var(--c3); white-space:nowrap; overflow:hidden; letter-spacing:0; }
+.xfer .err { color:var(--c4); }
+.ansi { display:block; width:min(100%, 640px); image-rendering:pixelated; image-rendering:crisp-edges; border:2px solid var(--dim); margin:.4em 0; }
+.pickbtn { background:var(--sel-bg); color:var(--sel-fg); border:0; padding:.1em .8em; cursor:pointer; margin-top:.5em; }
+.viewer { background:#000; border:4px double #AAAAAA; padding:.5em; max-width:96%; max-height:92%; display:flex; flex-direction:column; color:#AAAAAA; box-shadow:.5em .5em 0 rgba(0,0,0,.6); }
+.viewer .vt { background:#AAAAAA; color:#000; padding:0 .5em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.viewer img { max-width:100%; max-height:calc(100dvh - 9em); object-fit:contain; display:block; margin:.5em auto; image-rendering:auto; }
+.viewer .vf { text-align:center; font-size:.85em; }
+.bt.pds .r { grid-template-columns:3.6em 7em 3.6em 5.2em 3em minmax(0,1fr); }
+.bt .sz { text-align:right; color:var(--dim); }
+
 /* ───────────── 반응형 ───────────── */
 @media (max-width:720px) {
     :root { --fs:15px; }
@@ -273,6 +295,8 @@ button, input { font:inherit; color:inherit; }
     .menu { grid-template-columns:minmax(0,1fr); gap:.05em; }
     .bt .r { grid-template-columns:2.8em 3.2em minmax(0,1fr); gap:0 .5em; }
     .bt .r .au, .bt .r .vw { display:none; }
+    .bt.pds .r { grid-template-columns:2.8em 3.2em 4.6em minmax(0,1fr); }
+    .bt.pds .r .dt { order:1; } .bt.pds .r .sz { order:2; } .bt.pds .r .ti { order:3; }
     .bt .r .dt { order:1; } .bt .r .ti { order:2; } .bt .r .no { order:0; }
     .tbl .r { grid-template-columns:2em minmax(0,1fr) 4.2em; }
     .tbl .r .wh { display:none; }
@@ -315,6 +339,7 @@ button, input { font:inherit; color:inherit; }
         <div id="fkeys"></div>
         <div id="status"></div>
         <div id="popup"></div>
+        <input type="file" id="fpick" hidden>
     </div>
     <div class="badge">PC-COLOR 14" · VGA</div>
     <div class="led" id="led"></div>
@@ -347,7 +372,8 @@ const FONTS = [
     { id:'dgm',     name:'둥근모꼴',      css:"'RoundedFixedsys'" },
     { id:'seogung', name:'서궁',          css:"'Seogung'" },
     { id:'umdot',   name:'움돋',          css:"'Umdot'" },
-    { id:'story',   name:'이야기 굵은체', css:"'StoryBold'" }
+    { id:'story',   name:'이야기 굵은체', css:"'StoryBold'" },
+    { id:'tangba',  name:'탕바',          css:"'Tangba'" }
 ];
 const SCALES = [ { v:.88, n:'작게' }, { v:1, n:'보통' }, { v:1.14, n:'크게' } ];
 
@@ -372,7 +398,7 @@ const ROOMS = [
     { id:'심야방',  name:'심야방',    sub:'전화비 걱정은 잠시 접어두고' }
 ];
 const NOTICES = [
-    { title:'PC통신 실시간 대화방에 오신 것을 환영합니다', date:'운영자', body:
+    { title:'My Way PC통신에 오신 것을 환영합니다', date:'운영자', body:
 `건전한 통신 예절을 지켜 주세요.
 
  · 상대방을 존중하는 대화를 나눕시다.
@@ -385,6 +411,7 @@ const NOTICES = [
 
  3. 게시판   자유 · 유머 · 묻고답하기 · 컴퓨터 · 글마당
  4. 동호회   동호회마다 게시판과 대화실이 따로 있습니다
+ 5. 자료실   그림 자료실 · 공개 자료실 (UP 올리기 / DN 받기)
  6. 한줄메모 접속 인사를 한 줄 남겨 보세요
  7. 접속자   지금 접속한 이용자와 위치를 봅니다
  8. 환경설정 테마(화면 색) · 글꼴 · 글자 크기 · 화면 효과` },
@@ -449,14 +476,38 @@ function makeRemote(F, db, uid) {
         addMemo(m) { return F.addDoc(col('memos'), { ...m, uid, timestamp:Date.now() }); },
         setPresence(p) { return F.setDoc(ref('presence', uid), { ...p, lastSeen:Date.now() }).catch(() => {}); },
         delPresence() { return F.deleteDoc(ref('presence', uid)).catch(() => {}); },
-        async listWho() { return rows(await F.getDocs(F.query(col('presence'), F.where('lastSeen', '>', Date.now() - 3*60*1000)))); }
+        async listWho() { return rows(await F.getDocs(F.query(col('presence'), F.where('lastSeen', '>', Date.now() - 3*60*1000)))); },
+        /* 자료실: 파일을 base64 조각으로 나눠 Firestore 에 저장 */
+        newFileId(area) { return F.doc(col('pds', area, 'items')).id; },
+        async putFile(area, id, meta, chunks, prog) {
+            for (let i = 0; i < chunks.length; i++) {
+                await F.setDoc(ref('pds', area, 'items', id, 'chunks', String(i)), { data:chunks[i] });
+                prog(i + 1, chunks.length);
+            }
+            await F.setDoc(ref('pds', area, 'items', id), { ...meta, uid, downloads:0, chunks:chunks.length, timestamp:Date.now() });
+        },
+        async listFiles(area) { return rows(await F.getDocs(F.query(col('pds', area, 'items'), F.orderBy('timestamp','desc'), F.limit(200)))); },
+        async getFile(area, id) { const d = await F.getDoc(ref('pds', area, 'items', id)); return d.exists() ? { id:d.id, ...d.data() } : null; },
+        async getChunks(area, id, n, prog) {
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                const d = await F.getDoc(ref('pds', area, 'items', id, 'chunks', String(i)));
+                if (!d.exists()) throw new Error('자료 조각이 없습니다');
+                out.push(d.data().data); prog(i + 1, n);
+            }
+            return out.join('');
+        },
+        incDown(area, id) { return F.updateDoc(ref('pds', area, 'items', id), { downloads:F.increment(1) }).catch(() => {}); },
+        async delFile(area, id, n) {
+            for (let i = 0; i < n; i++) await F.deleteDoc(ref('pds', area, 'items', id, 'chunks', String(i))).catch(() => {});
+            await F.deleteDoc(ref('pds', area, 'items', id));
+        }
     };
 }
 
-function makeLocal() {
-    const uid = 'local';
+function makeLocal(uid = 'local') {
     const t0 = Date.now();
-    const chats = {}, subs = {}, posts = {}, comments = {};
+    const chats = {}, subs = {}, posts = {}, comments = {}, files = {};
     let seq = 0; const nid = () => 'L' + (++seq);
     let me = null;
     posts.free = [
@@ -488,11 +539,23 @@ function makeLocal() {
         async addMemo(m) { memos.push({ id:nid(), ...m, uid, timestamp:Date.now() }); },
         async setPresence(p) { me = { id:uid, ...p, lastSeen:Date.now() }; },
         async delPresence() { me = null; },
-        async listWho() { return me ? [me] : []; }
+        async listWho() { return me ? [me] : []; },
+        newFileId() { return nid(); },
+        async putFile(area, id, meta, chunks, prog) {
+            for (let i = 0; i < chunks.length; i++) { await sleep(120); prog(i + 1, chunks.length); }
+            (files[area] ||= []).push({ id, ...meta, uid, downloads:0, chunks:chunks.length, timestamp:Date.now(), _data:chunks.join('') });
+        },
+        async listFiles(area) { return [...(files[area] || [])].sort((a, z) => z.timestamp - a.timestamp); },
+        async getFile(area, id) { return (files[area] || []).find(f => f.id === id) || null; },
+        async getChunks(area, id, n, prog) { await sleep(150); prog(n, n); return ((files[area] || []).find(f => f.id === id) || {})._data || ''; },
+        async incDown(area, id) { const f = (files[area] || []).find(f => f.id === id); if (f) f.downloads++; },
+        async delFile(area, id) { files[area] = (files[area] || []).filter(f => f.id !== id); }
     };
 }
 
 let DB = makeLocal();
+let NET = null;   // { Au, F, auth, db } — 서버 모듈이 올라오면 채워짐
+
 async function connectServer() {
     try {
         const [A, Au, F] = await withTimeout(Promise.all([
@@ -502,15 +565,74 @@ async function connectServer() {
         ]), 10000);
         const app = A.initializeApp(FIREBASE_CONFIG);
         const auth = Au.getAuth(app);
-        const db = F.getFirestore(app);
-        await withTimeout(Au.signInAnonymously(auth), 10000);
-        DB = makeRemote(F, db, auth.currentUser.uid);
+        // 접속할 때마다 비밀번호를 묻도록 로그인 상태는 이 창에서만 유지
+        await Au.setPersistence(auth, Au.inMemoryPersistence).catch(() => {});
+        NET = { Au, F, auth, db:F.getFirestore(app) };
         return true;
     } catch (e) {
         console.warn('서버 연결 실패, 오프라인 모드:', e);
-        DB = makeLocal();
+        NET = null;
         return false;
     }
+}
+
+/* ── 회원 인증 ──
+   이용자는 대화명(닉네임)과 비밀번호만 입력합니다. 이메일은 묻지도 쓰지도 않습니다.
+   내부적으로는 대화명을 글자 그대로(대·소문자, 한글 구분) 16진수로 바꾼 가짜 계정 주소를
+   Firebase 인증의 열쇠로만 씁니다. 그래서 대화명·비밀번호가 한 글자라도 다르면 틀립니다. */
+const ID_RE = /^[A-Za-z0-9_가-힣]{2,10}$/;
+const idToEmail = id => [...new TextEncoder().encode(id)].map(b => b.toString(16).padStart(2, '0')).join('') + '@myway-pc.local';
+async function hashPw(id, pw) {
+    const data = new TextEncoder().encode('myway|' + id + '|' + pw);
+    try { return [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))].map(b => b.toString(16).padStart(2, '0')).join(''); }
+    catch (e) { let h = 0; for (const b of data) h = (h * 31 + b) >>> 0; return 'x' + h.toString(16); }
+}
+const authErr = code => ({ code });
+
+const AUTH = {
+    async login(id, pw) {
+        if (NET) {
+            const cred = await withTimeout(NET.Au.signInWithEmailAndPassword(NET.auth, idToEmail(id), pw), 15000);
+            return { uid:cred.user.uid, id, nick:cred.user.displayName || id, guest:false };
+        }
+        const acc = LS.get('accounts', {})[id];
+        if (!acc || acc.pw !== await hashPw(id, pw)) throw authErr('auth/invalid-credential');
+        return { uid:'local-' + id, id, nick:acc.nick, guest:false };
+    },
+    async signup(id, pw) {
+        const nick = id;
+        if (NET) {
+            const cred = await withTimeout(NET.Au.createUserWithEmailAndPassword(NET.auth, idToEmail(id), pw), 15000);
+            await NET.Au.updateProfile(cred.user, { displayName:nick }).catch(() => {});
+            return { uid:cred.user.uid, id, nick, guest:false };
+        }
+        const accs = LS.get('accounts', {});
+        if (accs[id]) throw authErr('auth/email-already-in-use');
+        accs[id] = { nick, pw:await hashPw(id, pw) };
+        LS.set('accounts', accs);
+        return { uid:'local-' + id, id, nick, guest:false };
+    },
+    async guest() {
+        const nick = '손님_' + Math.floor(Math.random() * 9000 + 1000);
+        if (NET) {
+            const cred = await withTimeout(NET.Au.signInAnonymously(NET.auth), 15000);
+            return { uid:cred.user.uid, id:'guest', nick, guest:true };
+        }
+        return { uid:'local-guest', id:'guest', nick, guest:true };
+    },
+    logout() { if (NET) NET.Au.signOut(NET.auth).catch(() => {}); }
+};
+function authMessage(e) {
+    const c = (e && e.code) || '';
+    if (['auth/invalid-credential', 'auth/wrong-password', 'auth/user-not-found', 'auth/invalid-email', 'auth/invalid-login-credentials'].includes(c))
+        return '대화명 또는 비밀번호가 틀립니다.';
+    if (c === 'auth/email-already-in-use') return '이미 누가 쓰고 있는 대화명입니다.';
+    if (c === 'auth/weak-password') return '비밀번호는 6자 이상이어야 합니다.';
+    if (c === 'auth/too-many-requests') return '너무 여러 번 틀렸습니다. 잠시 뒤에 다시 시도하세요.';
+    if (c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation')
+        return '서버에서 이 로그인 방식이 꺼져 있습니다. (운영자: Firebase 인증 설정 필요)';
+    if (c === 'auth/network-request-failed' || (e && e.message === 'timeout')) return '통신 상태가 좋지 않습니다. 다시 시도하세요.';
+    return '로그인 오류: ' + (c || (e && e.message) || e);
 }
 
 /* =====================================================================
@@ -525,7 +647,7 @@ const ui = {
 };
 
 const S = {
-    nick: LS.get('nick', null) || ('User_' + Math.floor(Math.random()*9000 + 1000)),
+    nick: '', me: null,
     themeId: LS.get('theme', 'blue'),
     fontId: LS.get('font', 'dgm'),
     scaleIdx: LS.get('scale', 1),
@@ -548,9 +670,9 @@ function flash(text, ok=false) {
 }
 
 function setTop(crumb, code) {
-    const path = ['<span class="svc">HiTEL</span>', ...crumb.map(esc)].join(' ▸ ');
+    const path = ['<span class="svc">My Way</span>', ...crumb.map(esc)].join(' ▸ ');
     ui.topL.innerHTML = path;
-    ui.topR.innerHTML = `<span class="code">${code ? 'go ' + esc(code) + ' │ ' : ''}</span>${esc(S.nick)} │ <span id="clock">${fmtHM(Date.now())}</span>`;
+    ui.topR.innerHTML = `<span class="code">${code ? 'go ' + esc(code) + ' │ ' : ''}</span>${S.nick ? esc(S.nick) + ' │ ' : ''}<span id="clock">${fmtHM(Date.now())}</span>`;
 }
 
 function setPrompt(p) { ui.prompt.innerHTML = esc(p); }
@@ -593,7 +715,8 @@ const setParams = p => { const t = S.stack[S.stack.length - 1]; if (t) Object.as
 const GO = {
     top:['main'], main:['main'], notice:['notice'], chat:['chatMenu'], room:['room'],
     lobby:['chat', { room:'lobby' }], bbs:['bbs'], club:['clubMenu'], memo:['memo'],
-    who:['who'], set:['settings'], theme:['themes'], font:['fonts'], help:['help']
+    who:['who'], set:['settings'], theme:['themes'], font:['fonts'], help:['help'],
+    pds:['pdsMenu'], file:['files', { area:'file' }], pic:['files', { area:'pic' }]
 };
 Object.entries(BOARDS).forEach(([id, b]) => GO[b.code.toLowerCase()] = ['board', { b:id }]);
 CLUBS.forEach(c => GO[c.code.toLowerCase()] = ['clubHome', { id:c.id }]);
@@ -630,7 +753,7 @@ function handle(rawIn) {
     if (S.phase === 'dead') { location.reload(); return; }
     if (S.phase === 'boot') return;
     if (S.phase === 'popup') { closePopup(); return; }
-    if (S.phase === 'login') { S.cur.onInput(v); return; }
+    if (S.phase === 'login') { S.cur.onInput(raw); return; }
     if (!S.cur) return;
     if (v) { S.history.push(v); if (S.history.length > 50) S.history.shift(); }
     S.hIdx = -1;
@@ -669,6 +792,7 @@ const FKEYS = [
     { k:'F6', l:'메모', run:() => nav('memo') },
     { k:'F7', l:'접속자', run:() => nav('who') },
     { k:'F8', l:'설정', run:() => nav('settings') },
+    { k:'F9', l:'사진', run:() => S.cur && S.cur.saveImage ? S.cur.saveImage() : flash('대화실 안에서 누르면 대화 내용을 사진으로 저장합니다.') },
     { k:'ESC', l:'이전', run:() => back() },
     { k:'F10', l:'종료', run:() => bye() }
 ];
@@ -741,7 +865,8 @@ function applyCrt(on) { S.crt = on; document.body.classList.toggle('crt-on', on)
 function setNick(n) {
     n = (n || '').trim().replace(/\s+/g, '_').slice(0, 12);
     if (!n) return false;
-    S.nick = n; LS.set('nick', n); heartbeat();
+    if (S.me && !S.me.guest) return 'member';
+    S.nick = n; heartbeat();
     if (S.cur) setTop(S.cur.crumb || [], S.cur.code || '');
     return true;
 }
@@ -765,15 +890,20 @@ const FONT5 = {
     I:['11111','00100','00100','00100','00100','00100','11111'],
     T:['11111','00100','00100','00100','00100','00100','00100'],
     E:['11111','10000','10000','11110','10000','10000','11111'],
-    L:['10000','10000','10000','10000','10000','10000','11111']
+    L:['10000','10000','10000','10000','10000','10000','11111'],
+    M:['10001','11011','10101','10101','10001','10001','10001'],
+    Y:['10001','10001','01010','00100','00100','00100','00100'],
+    W:['10001','10001','10001','10101','10101','11011','10001'],
+    A:['01110','10001','10001','11111','10001','10001','10001'],
+    ' ':['00','00','00','00','00','00','00']
 };
 function logo(word) {
     const letters = word.split('').map(c => FONT5[c]);
-    const cols = letters.length * 6 - 1;
+    const cols = letters.reduce((n, g) => n + g[0].length, 0) + letters.length - 1;
     let cells = '';
     for (let r = 0; r < 7; r++) {
         letters.forEach((g, li) => {
-            for (let c = 0; c < 5; c++) cells += `<i class="${g[r][c] === '1' ? 'on' : ''}${r >= 4 ? ' lo' : ''}"></i>`;
+            for (let c = 0; c < g[r].length; c++) cells += `<i class="${g[r][c] === '1' ? 'on' : ''}${r >= 4 ? ' lo' : ''}"></i>`;
             if (li < letters.length - 1) cells += '<i></i>';
         });
     }
@@ -806,8 +936,8 @@ const screens = {};
 screens.main = () => show({
     crumb:['초기화면'], code:'TOP', where:'초기화면', prompt:'선택 >>',
     html: `
-${logo('HITEL')}
-<div class="tagline">P C 통 신 · 실 시 간 대 화 방</div>
+${logo('MY WAY')}
+<div class="tagline">M y &nbsp;W a y &nbsp;P C 통 신</div>
 ${rule('═', 'c1')}
 <div class="center ttl" style="margin:.2em 0 .4em">[ 주 메 뉴 ]</div>
 <div class="menu">
@@ -819,14 +949,14 @@ ${rule('═', 'c1')}
     ${mi('8', '환경설정', 'SET')}
     ${mi('4', '동호회', 'CLUB')}
     ${mi('9', '도움말', 'HELP')}
-    ${mi('5', '대화방 개설/이동', 'ROOM')}
+    ${mi('5', '자료실', 'PDS')}
     ${mi('X', '접속 종료', 'BYE')}
 </div>
 ${rule('─')}
 <div class="center hint">번호나 <span class="k">GO 코드</span>를 입력하세요 (예: <span class="c1">go free</span>) · <span class="k">P</span> 이전 · <span class="k">X</span> 종료</div>
 <div class="center hint" style="margin-top:.8em"><a href="https://github.com/hosain1291/pcchat" target="_blank" rel="noopener">GitHub · hosain1291/pcchat</a></div>`,
     onInput(v) {
-        const map = { '1':'notice', '2':'chatMenu', '3':'bbs', '4':'clubMenu', '5':'room', '6':'memo', '7':'who', '8':'settings', '9':'help' };
+        const map = { '1':'notice', '2':'chatMenu', '3':'bbs', '4':'clubMenu', '5':'pdsMenu', '6':'memo', '7':'who', '8':'settings', '9':'help' };
         if (map[v]) nav(map[v]);
         else if (v.toLowerCase() === 'q') bye();
         else if (v) flash('잘못 입력하셨습니다. 메뉴 번호를 입력하세요.');
@@ -902,7 +1032,8 @@ screens.chat = ({ room }) => {
         log.insertAdjacentHTML('beforeend', html);
         if (stick || log.childElementCount < 3) ui.screen.scrollTop = ui.screen.scrollHeight;
     };
-    const sys = t => append(`<div class="sys local">${esc(t)}</div>`);
+    const items = [];
+    const sys = t => { items.push({ type:'local', text:t }); append(`<div class="sys local">${esc(t)}</div>`); };
     const line = m => {
         if (m.type === 'system') return `<div class="sys">${esc(m.text)}</div>`;
         const me = m.nickname === S.nick;
@@ -911,10 +1042,11 @@ screens.chat = ({ room }) => {
     const seen = new Set();
     const unsub = DB.subChat(room, m => {
         if (stale(myId) || seen.has(m.id)) return;
-        seen.add(m.id); append(line(m));
+        seen.add(m.id); items.push(m); append(line(m));
     }, e => sys(errMsg(e).replace(/<[^>]+>/g, '')));
     DB.sendChat(room, { type:'system', text:`*** ${S.nick}님이 들어오셨습니다.`, nickname:S.nick }).catch(() => {});
 
+    S.cur.saveImage = () => saveChatImage(R, items.filter(m => m.type !== 'local'));
     S.cur.onLeave = () => {
         unsub && unsub();
         DB.sendChat(room, { type:'system', text:`*** ${S.nick}님이 나가셨습니다.`, nickname:S.nick }).catch(() => {});
@@ -931,7 +1063,9 @@ screens.chat = ({ room }) => {
                 else sys('사용법: /j 방이름  (예: /j 수다방)');
             } else if (c === '/n' || c === '/nick') {
                 const old = S.nick;
-                if (setNick(arg)) {
+                const r = setNick(arg);
+                if (r === 'member') sys('회원 대화명은 로그인 이름이라 바꿀 수 없습니다. (손님만 /n 사용)');
+                else if (r) {
                     setPrompt(`${S.nick} >`);
                     DB.sendChat(room, { type:'system', text:`*** ${old}님이 대화명을 [${S.nick}](으)로 바꾸셨습니다.`, nickname:S.nick }).catch(() => {});
                 } else sys('사용법: /n 새대화명  (12자까지)');
@@ -944,14 +1078,16 @@ screens.chat = ({ room }) => {
                 if (t) { applyTheme(t.id); sys(`테마가 '${t.name}'(으)로 바뀌었습니다.`); }
                 else sys('사용법: /theme 번호  ' + THEMES.map((t, i) => `${i+1}.${t.name}`).join(' '));
             } else if (c === '/cls' || c === '/clear') {
-                log.innerHTML = ''; sys('화면이 지워졌습니다.');
+                log.innerHTML = ''; items.length = 0; sys('화면이 지워졌습니다.');
             } else if (c === '/w' || c === '/who') {
                 try {
                     const list = await DB.listWho();
                     sys(`현재 접속자 ${list.length}명: ` + list.map(p => `${p.nick}(${p.where || '-'})`).join(', '));
                 } catch(e) { sys(errMsg(e)); }
+            } else if (c === '/save' || c === '/사진' || c === '/capture') {
+                S.cur.saveImage();
             } else if (c === '/h' || c === '/help' || c === '/?') {
-                sys('/j 방이름 · /n 대화명 · /w 접속자 · /font 글꼴 · /theme 번호 · /cls 화면지움 · /q 나가기 · /go 코드');
+                sys('/j 방이름 · /n 대화명(손님) · /w 접속자 · /save 대화 사진 저장 · /font 글꼴 · /theme 번호 · /cls 화면지움 · /q 나가기 · /go 코드');
             } else sys('알 수 없는 명령어입니다. (/h 도움말)');
             return;
         }
@@ -1164,7 +1300,7 @@ screens.who = async (_, id) => {
     list.sort((a, z) => (a.since || 0) - (z.since || 0));
     show({
         html: header('접 속 자', `지금 ${list.length}명이 접속해 있습니다${DB.online ? '' : ' (오프라인 모드)'}`) +
-            `<div class="tbl"><div class="r hd"><span>No</span><span>이용자ID</span><span class="wh">위치</span><span>접속시간</span></div>` +
+            `<div class="tbl"><div class="r hd"><span>No</span><span>대화명</span><span class="wh">위치</span><span>접속시간</span></div>` +
             list.map((p, i) => `<div class="r"><span class="dim">${i+1}</span><span class="${p.id === DB.uid ? 'c2' : 'c1'}">${esc(p.nick)}</span><span class="wh">${esc(p.where || '-')}</span><span class="dim">${p.since ? fmtDur(Date.now() - p.since) : '-'}</span></div>`).join('') +
             `</div>${rule()}${navHint('<span class="k">L</span> 새로고침')}`,
         onInput(v) { if (v.toLowerCase() === 'l' || v === '') nav('who', {}, { replace:true }); else flash('L 새로고침 · P 이전'); }
@@ -1180,20 +1316,21 @@ screens.settings = () => {
         html: header('환 경 설 정') + `<div class="menu one">
 ${mi('1', '화면 테마', 'THEME', esc(theme.name))}
 ${mi('2', '글꼴', 'FONT', esc(font.name))}
-${mi('3', '이용자ID (대화명) 바꾸기', '', esc(S.nick))}
+${S.me && !S.me.guest ? mi('3', '대화명', '', esc(S.nick) + ' (회원 · 바꿀 수 없음)') : mi('3', '손님 대화명 바꾸기', '', esc(S.nick))}
 ${mi('4', 'CRT 화면 효과', '', S.crt ? '켜짐' : '꺼짐')}
 ${mi('5', '글자 크기', '', SCALES[S.scaleIdx].n)}
 </div>${rule()}${navHint()}`,
         onInput(v) {
             if (S.cur.mode === 'nick') {
                 S.cur.mode = null; S.cur.raw = false;
-                if (setNick(v)) { flash(`이용자ID가 [${S.nick}](으)로 바뀌었습니다.`, true); screens.settings(); }
+                if (setNick(v) === true) { flash(`대화명이 [${S.nick}](으)로 바뀌었습니다.`, true); screens.settings(); }
                 else { flash('바꾸기를 취소했습니다.'); setPrompt('선택 >>'); }
                 return;
             }
             if (v === '1') nav('themes');
             else if (v === '2') nav('fonts');
-            else if (v === '3') { S.cur.mode = 'nick'; S.cur.raw = true; setPrompt('새 이용자ID >>'); flash('12자 이내로 입력하세요. (빈 줄이면 취소)', true); }
+            else if (v === '3' && S.me && !S.me.guest) flash('회원 대화명은 로그인 이름이라 바꿀 수 없습니다.');
+            else if (v === '3') { S.cur.mode = 'nick'; S.cur.raw = true; setPrompt('새 대화명 >>'); flash('12자 이내로 입력하세요. (빈 줄이면 취소)', true); }
             else if (v === '4') { applyCrt(!S.crt); screens.settings(); }
             else if (v === '5') { applyScale(S.scaleIdx + 1); screens.settings(); }
             else if (v) flash('1~5 중에서 고르세요.');
@@ -1249,6 +1386,7 @@ screens.help = () => show({
 <span class="k">/w</span><span>접속자 보기</span>
 <span class="k">/font 이름</span><span>${FONTS.map(f => f.name).join(' / ')}</span>
 <span class="k">/theme 번호</span><span>${THEMES.map((t, i) => `${i+1}.${t.name}`).join(' ')}</span>
+<span class="k">/save</span><span>지금까지의 대화를 사진(PNG)으로 저장 (F9)</span>
 <span class="k">/cls</span><span>화면 지우기</span>
 <span class="k">/q</span><span>방에서 나가기</span>
 </div>
@@ -1260,6 +1398,14 @@ screens.help = () => show({
 <span class="k">C</span><span>댓글 쓰기 (글 읽는 중)</span>
 <span class="k">D</span><span>내 글 지우기</span>
 </div>
+<div class="gap"></div><div class="ttl">■ 자료실</div>
+<div class="kv">
+<span class="k">번호</span><span>자료 정보 보기 (그림 자료실은 ANSI 미리보기)</span>
+<span class="k">UP</span><span>자료 올리기 — 설명 입력 → 프로토콜 선택 → 파일 고르기 (최대 1.44MB, 회원만)</span>
+<span class="k">DN 번호</span><span>자료 받기 (보는 중에는 DN 만)</span>
+<span class="k">V</span><span>그림 원본 보기</span>
+<span class="k">DEL</span><span>내가 올린 자료 지우기</span>
+</div>
 <div class="gap"></div><div class="ttl">■ 사이트 정보</div>
 <div class="kv">
 <span class="k">접속 주소</span><span><a href="https://hosain1291.github.io/pcchat/" target="_blank" rel="noopener">hosain1291.github.io/pcchat</a></span>
@@ -1269,11 +1415,397 @@ screens.help = () => show({
 });
 
 /* =====================================================================
+   대화 사진 저장
+   ===================================================================== */
+async function saveChatImage(R, items) {
+    const cs = getComputedStyle(ui.root);
+    const col = n => cs.getPropertyValue('--' + n).trim();
+    const fam = (FONTS.find(f => f.id === S.fontId) || FONTS[0]).css;
+    const FS = 20, LH = 30, W = 900, PX = 32, BAR = 34;
+    const font = `${FS}px ${fam}, monospace`;
+    try { await document.fonts.load(font, '가A'); } catch (e) {}
+    const cv = document.createElement('canvas');
+    const ctx = cv.getContext('2d');
+    ctx.font = font;
+    const maxW = W - PX * 2;
+    const lines = [];
+    const addWrapped = segs => {
+        let line = [], w = 0;
+        for (const sg of segs) for (const ch of [...sg.t]) {
+            const cw = ctx.measureText(ch).width;
+            if (w + cw > maxW && line.length) { lines.push(line); line = [{ t:'   ', c:sg.c }]; w = ctx.measureText('   ').width; if (ch === ' ') continue; }
+            const last = line[line.length - 1];
+            if (last && last.c === sg.c) last.t += ch; else line.push({ t:ch, c:sg.c });
+            w += cw;
+        }
+        lines.push(line);
+    };
+    addWrapped([{ t:`통신망 ${R.title} 대화 기록`, c:col('c2') }]);
+    addWrapped([{ t:`저장한 사람 ${S.nick} · ${fmtFull(Date.now())}`, c:col('dim') }]);
+    lines.push('rule');
+    if (!items.length) addWrapped([{ t:'(아직 대화가 없습니다)', c:col('dim') }]);
+    items.forEach(m => {
+        if (m.type === 'system') addWrapped([{ t:m.text, c:col('c3') }]);
+        else addWrapped([
+            { t:(m.timestamp ? fmtHM(m.timestamp) : '') + ' ', c:col('dim') },
+            { t:`[${m.nickname}] `, c:m.nickname === S.nick ? col('c2') : col('c1') },
+            { t:m.text || '', c:col('fg') }
+        ]);
+    });
+    lines.push('rule');
+    addWrapped([{ t:'My Way PC통신 · hosain1291.github.io/pcchat', c:col('dim') }]);
+    const H = BAR + 18 + lines.length * LH + 20;
+    const SC = 2;
+    cv.width = W * SC; cv.height = H * SC;
+    ctx.scale(SC, SC);
+    ctx.fillStyle = col('bg'); ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = col('bar-bg'); ctx.fillRect(0, 0, W, BAR);
+    ctx.font = font; ctx.textBaseline = 'middle';
+    ctx.fillStyle = col('bar-fg');
+    ctx.fillText(['My Way', ...R.crumb].join(' ▸ '), 14, BAR / 2 + 1);
+    const tw = ctx.measureText(fmtFull(Date.now())).width;
+    ctx.fillText(fmtFull(Date.now()), W - 14 - tw, BAR / 2 + 1);
+    let y = BAR + 18 + LH / 2;
+    for (const ln of lines) {
+        if (ln === 'rule') { ctx.fillStyle = col('dim'); ctx.fillRect(PX, y - 1, maxW, 2); y += LH; continue; }
+        let x = PX;
+        for (const sg of ln) { ctx.fillStyle = sg.c; ctx.fillText(sg.t, x, y); x += ctx.measureText(sg.t).width; }
+        y += LH;
+    }
+    if (S.crt) { ctx.fillStyle = 'rgba(0,0,0,.12)'; for (let yy = 0; yy < H; yy += 3) ctx.fillRect(0, yy, W, 1); }
+    const name = `MyWay_대화_${R.title.replace(/[\\/:*?"<>|\[\]\s]+/g, '_')}_${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '')}.png`;
+    cv.toBlob(blob => {
+        if (!blob) return flash('사진을 만들지 못했습니다.');
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href:url, download:name });
+        document.body.appendChild(a); a.click(); a.remove();
+        openPopup(`<div class="viewer"><div class="vt">대화 사진 저장 · ${esc(name)}</div><img src="${url}" alt="대화 사진"><div class="vf">파일로 내려받았습니다. 휴대폰은 사진을 길게 눌러 저장할 수도 있습니다. [아무 키나 누르면 닫힘]</div></div>`);
+    }, 'image/png');
+}
+
+/* =====================================================================
+   자료실 (그림 자료실 · 공개 자료실)
+   ===================================================================== */
+const PDS = {
+    file: { name:'공개 자료실', code:'FILE', desc:'프로그램 · 문서 · 음악 등 모든 자료' },
+    pic:  { name:'그림 자료실', code:'PIC',  desc:'사진 · 그림 (보기 전 ANSI 16색 미리보기)' }
+};
+const DISK = 1457664; // 1.44MB 디스켓 한 장
+const CHUNK = 700000;
+const PROTOS = ['Z-modem', 'Y-modem', 'X-modem', 'Kermit'];
+const fmtSize = n => n >= 1024 * 1024 ? (n / 1048576).toFixed(2) + 'MB' : n >= 1024 ? Math.ceil(n / 1024) + 'KB' : n + 'B';
+const commas = n => Number(n).toLocaleString('ko-KR');
+const pickProto = v => { const i = +(v || '1') - 1; return PROTOS[i] || (v === '' ? PROTOS[0] : null); };
+const protoMenu = () => `<div class="c1">전송 프로토콜을 고르세요. (그냥 Enter = Z-modem)</div><div class="menu one" style="margin:.3em 0">${PROTOS.map((p, i) => mi(String(i+1), p, '', i === 0 ? '추천 · 이어받기 지원' : i === 3 ? '느리지만 튼튼함' : '')).join('')}</div>`;
+
+function transferBox(el, { dir, proto, name, size }) {
+    const blk = proto === 'X-modem' ? 128 : 1024;
+    const blocks = Math.max(1, Math.ceil(size / blk));
+    let target = 0, shown = 0, last = performance.now(), finished = false, dead = false, resolveDone;
+    const t0 = last;
+    const done = new Promise(r => resolveDone = r);
+    const draw = (errText = '') => {
+        const pct = Math.floor(shown * 100);
+        const cells = 28, on = Math.round(shown * cells);
+        const sec = Math.max(.001, (performance.now() - t0) / 1000);
+        el.innerHTML = `<div class="xfer"><span class="cap">[ ${esc(proto)} ${dir === 'up' ? '올리기 (Upload)' : '받기 (Download)'} ]</span>
+<div><span class="c2">파일 이름</span> : ${esc(name)}</div>
+<div><span class="c2">파일 크기</span> : ${commas(size)} 바이트</div>
+<div><span class="c2">전송 블록</span> : ${commas(Math.floor(shown * blocks))} / ${commas(blocks)} &nbsp;<span class="dim">(${blk} 바이트)</span></div>
+<div class="bar">${'█'.repeat(on)}<span class="dim">${'░'.repeat(cells - on)}</span> ${pct}%</div>
+<div><span class="c2">전송 속도</span> : ${commas(Math.round(shown * size / sec))} cps &nbsp; <span class="c2">경과</span> : ${fmtDur(sec * 1000)}</div>
+${errText ? `<div class="err">${errText}</div>` : shown >= 1 && finished ? `<div class="c3">전송 완료! ${dir === 'up' ? '자료가 올라갔습니다.' : '자료를 받았습니다.'}</div>` : '<div class="dim">전송 중 ... 끊지 마세요</div>'}</div>`;
+        ui.screen.scrollTop = ui.screen.scrollHeight;
+    };
+    const tick = now => {
+        if (dead) return;
+        shown = Math.min(target, shown + (now - last) / 1500); last = now;
+        draw();
+        if (finished && shown >= 1) { resolveDone(); return; }
+        requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    return {
+        set(f) { target = Math.max(target, Math.min(.98, f)); },
+        complete() { target = 1; finished = true; return done; },
+        fail(msg) { dead = true; draw(`CAN — 전송이 취소되었습니다. ${msg}`); }
+    };
+}
+
+function readAsB64(blob) {
+    return new Promise((res, rej) => {
+        const fr = new FileReader();
+        fr.onload = () => res(String(fr.result).split(',')[1] || '');
+        fr.onerror = () => rej(fr.error);
+        fr.readAsDataURL(blob);
+    });
+}
+function b64ToBlob(b64, type) {
+    const bin = atob(b64); const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return new Blob([u8], { type:type || 'application/octet-stream' });
+}
+function loadImg(src) {
+    return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+async function shrinkImage(file) {
+    const url = URL.createObjectURL(file);
+    try {
+        const im = await loadImg(url);
+        const w = im.naturalWidth, h = im.naturalHeight;
+        if (file.size <= 400 * 1024 && file.type !== 'image/heic') return { blob:file, w, h, type:file.type };
+        let scale = Math.min(1, 1280 / Math.max(w, h)), q = .85, blob;
+        for (let k = 0; k < 6; k++) {
+            const cv = document.createElement('canvas');
+            cv.width = Math.round(w * scale); cv.height = Math.round(h * scale);
+            const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+            cx.drawImage(im, 0, 0, cv.width, cv.height);
+            blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', q));
+            if (blob && blob.size <= DISK) return { blob, w:cv.width, h:cv.height, type:'image/jpeg' };
+            scale *= .75; q -= .08;
+        }
+        return { blob, w, h, type:'image/jpeg' };
+    } finally { URL.revokeObjectURL(url); }
+}
+
+/* 그림을 16색 ANSI 화면처럼 바꿔 그리기 (플로이드-스타인버그 디더링) */
+const CGA = [[0,0,0],[0,0,170],[0,170,0],[0,170,170],[170,0,0],[170,0,170],[170,85,0],[170,170,170],[85,85,85],[85,85,255],[85,255,85],[85,255,255],[255,85,85],[255,85,255],[255,255,85],[255,255,255]];
+function ansiCanvas(im, cols) {
+    const rows = Math.max(8, Math.min(120, Math.round(cols * im.naturalHeight / im.naturalWidth)));
+    const cv = document.createElement('canvas'); cv.width = cols; cv.height = rows; cv.className = 'ansi';
+    const cx = cv.getContext('2d');
+    cx.drawImage(im, 0, 0, cols, rows);
+    const img = cx.getImageData(0, 0, cols, rows), d = img.data;
+    const buf = new Float32Array(cols * rows * 3);
+    for (let i = 0, j = 0; i < d.length; i += 4, j += 3) { buf[j] = d[i]; buf[j+1] = d[i+1]; buf[j+2] = d[i+2]; }
+    const spread = (x, y, e, f) => { if (x < 0 || x >= cols || y >= rows) return; const j = (y * cols + x) * 3; buf[j] += e[0]*f; buf[j+1] += e[1]*f; buf[j+2] += e[2]*f; };
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+        const j = (y * cols + x) * 3, r = buf[j], g = buf[j+1], b = buf[j+2];
+        let best = 0, bd = Infinity;
+        for (let k = 0; k < 16; k++) { const c = CGA[k]; const dd = (r-c[0])**2*.3 + (g-c[1])**2*.59 + (b-c[2])**2*.11; if (dd < bd) { bd = dd; best = k; } }
+        const c = CGA[best], e = [r - c[0], g - c[1], b - c[2]];
+        const i = (y * cols + x) * 4; d[i] = c[0]; d[i+1] = c[1]; d[i+2] = c[2]; d[i+3] = 255;
+        spread(x+1, y, e, 7/16); spread(x-1, y+1, e, 3/16); spread(x, y+1, e, 5/16); spread(x+1, y+1, e, 1/16);
+    }
+    cx.putImageData(img, 0, 0);
+    return cv;
+}
+
+screens.pdsMenu = () => show({
+    crumb:['자료실'], code:'PDS', where:'자료실', prompt:'선택 >>',
+    html: header('자 료 실', '그림과 파일을 올리고 받는 곳') +
+        `<div class="menu one">${mi('1', PDS.pic.name, PDS.pic.code, PDS.pic.desc)}${mi('2', PDS.file.name, PDS.file.code, PDS.file.desc)}</div>
+<div class="hint">한 번에 디스켓 한 장(1.44MB)까지 올릴 수 있습니다. 올리기는 회원만 됩니다.</div>${rule()}${navHint()}`,
+    onInput(v) {
+        if (v === '1') nav('files', { area:'pic' });
+        else if (v === '2') nav('files', { area:'file' });
+        else if (v) flash('1 그림 자료실 · 2 공개 자료실');
+    }
+});
+
+screens.files = async ({ area, page = 0 }, id) => {
+    const A = PDS[area];
+    show({ crumb:['자료실', A.name], code:A.code, where:A.name, prompt:'번호/명령 >>', html:header(A.name) + loading(), onInput(){} });
+    let list;
+    try { list = await DB.listFiles(area); }
+    catch (e) { if (!stale(id)) show({ html:header(A.name) + `<div class="c4">${errMsg(e)}</div>${rule()}${navHint()}` }); return; }
+    if (stale(id)) return;
+    const total = list.length, pages = Math.max(1, Math.ceil(total / PAGE));
+    let pg = Math.min(page, pages - 1);
+    const render = () => {
+        const rows = list.slice(pg * PAGE, pg * PAGE + PAGE).map((f, k) => {
+            const no = total - (pg * PAGE + k);
+            return `<div class="r" data-cmd="${no}" tabindex="0"><span class="no">${no}</span><span class="au">${esc(f.author)}</span><span class="dt">${fmtMD(f.timestamp)}</span><span class="sz">${fmtSize(f.size || 0)}</span><span class="vw">${f.downloads || 0}</span><span class="ti"><span class="c2">${esc(f.name)}</span> ${esc(f.desc || '')}</span></div>`;
+        }).join('');
+        show({ html: header(A.name, `총 ${total}개 · ${pg+1}/${pages}쪽`) +
+            `<div class="bt pds"><div class="r hd"><span class="no">번호</span><span class="au">올린이</span><span class="dt">날짜</span><span class="sz">크기</span><span class="vw">받음</span><span class="ti">파일 이름 / 설명</span></div>${rows || '<div class="empty">아직 올라온 자료가 없습니다. UP 으로 첫 자료를 올려 보세요.</div>'}</div>` +
+            rule() + navHint('<span class="k">번호</span> 보기 · <span class="k">UP</span> 올리기 · <span class="k">DN 번호</span> 받기 · <span class="k">N</span>/<span class="k">B</span> 쪽 넘김') });
+    };
+    render();
+    const open = (no, dn) => {
+        const idx = total - no;
+        if (idx >= 0 && idx < total) nav('fileRead', { area, id:list[idx].id, list:list.map(f => f.id), dn });
+        else flash('없는 자료 번호입니다.');
+    };
+    S.cur.onInput = v => {
+        const l = v.toLowerCase();
+        let m;
+        if (/^\d+$/.test(v)) open(+v);
+        else if ((m = l.match(/^(?:dn|d)\s*(\d+)$/))) open(+m[1], true);
+        else if (l === 'up' || l === 'u') nav('upload', { area });
+        else if (l === 'n') { if (pg < pages - 1) { pg++; setParams({ page:pg }); render(); } else flash('마지막 쪽입니다.'); }
+        else if (l === 'b') { if (pg > 0) { pg--; setParams({ page:pg }); render(); } else flash('첫 쪽입니다.'); }
+        else if (l === 'l' || v === '') nav('files', { area, page:pg }, { replace:true });
+        else flash('번호 보기 · UP 올리기 · DN 번호 받기 · P 이전');
+    };
+};
+
+screens.fileRead = async ({ area, id:fid, list = [], dn }, id) => {
+    const A = PDS[area];
+    show({ crumb:['자료실', A.name, '자료 보기'], code:A.code, where:A.name, prompt:'명령 >>', html:loading(), onInput(){} });
+    let f;
+    try { f = await DB.getFile(area, fid); }
+    catch (e) { if (!stale(id)) show({ html:`<div class="c4">${errMsg(e)}</div>${navHint()}` }); return; }
+    if (stale(id)) return;
+    if (!f) { show({ html:`<div class="c4">지워졌거나 없는 자료입니다.</div>${navHint()}` }); return; }
+    const idx = list.indexOf(fid);
+    const isPic = (f.type || '').startsWith('image/');
+    const mine = f.uid && f.uid === DB.uid;
+    let b64 = null;
+    show({ html: `<div class="ph">
+<div><span class="lab">파일</span>: <span class="c2">${esc(f.name)}</span></div>
+<div><span class="lab">설명</span>: <span class="hi">${esc(f.desc || '')}</span></div>
+<div><span class="lab">올린이</span>: <span class="c1">${esc(f.author)}</span> &nbsp; <span class="lab">날짜</span>: ${fmtFull(f.timestamp)}</div>
+<div><span class="lab">크기</span>: ${commas(f.size || 0)} 바이트 (${fmtSize(f.size || 0)})${f.w ? ` &nbsp; <span class="lab">해상도</span>: ${f.w}×${f.h}` : ''} &nbsp; <span class="lab">받음</span>: ${f.downloads || 0}회</div>
+</div>${rule()}<div id="pv">${isPic ? '<div class="dim">그림을 불러오는 중 ...</div>' : '<div class="dim">이 자료는 받아서 열어 보세요. (DN)</div>'}</div><div id="xf"></div>${rule()}
+${navHint(`<span class="k">DN</span> 받기${isPic ? ' · <span class="k">V</span> 원본 보기' : ''} · <span class="k">N</span> 다음 · <span class="k">A</span> 앞${mine ? ' · <span class="k">DEL</span> 지우기' : ''} · <span class="k">L</span> 목록`)}` });
+
+    const getData = async prog => { if (b64 === null) b64 = await DB.getChunks(area, fid, f.chunks || 1, prog || (() => {})); return b64; };
+    if (isPic) {
+        try {
+            const data = await getData();
+            if (stale(id)) return;
+            const im = await loadImg(`data:${f.type};base64,${data}`);
+            const pv = $('#pv'); if (!pv) return;
+            pv.innerHTML = `<div class="dim">ANSI 16색 미리보기 · V 를 누르면 원본을 봅니다</div>`;
+            const cv = ansiCanvas(im, window.innerWidth < 720 ? 64 : 96);
+            cv.style.cursor = 'zoom-in'; cv.dataset.cmd = 'v';
+            pv.appendChild(cv);
+        } catch (e) { const pv = $('#pv'); if (pv) pv.innerHTML = `<div class="c4">그림을 불러오지 못했습니다. ${esc(e.message || '')}</div>`; }
+    }
+
+    const download = async proto => {
+        S.cur.busy = true; setPrompt('전송 중 ...');
+        const box = transferBox($('#xf'), { dir:'dn', proto, name:f.name, size:f.size || 0 });
+        try {
+            const data = await getData((i, n) => box.set(i / n));
+            await box.complete();
+            const url = URL.createObjectURL(b64ToBlob(data, f.type));
+            const a = Object.assign(document.createElement('a'), { href:url, download:f.name });
+            document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 60000);
+            DB.incDown(area, fid);
+        } catch (e) { box.fail(errMsg(e)); }
+        S.cur.busy = false; setPrompt('명령 >>');
+    };
+    const go = j => nav('fileRead', { area, id:list[j], list }, { replace:true });
+    S.cur.onInput = async v => {
+        if (S.cur.busy) return flash('전송 중입니다. 잠시 기다리세요.');
+        const l = v.toLowerCase();
+        if (S.cur.mode === 'proto') {
+            S.cur.mode = null; setPrompt('명령 >>');
+            const p = pickProto(v);
+            if (!p) return flash('받기를 취소했습니다.');
+            return download(p);
+        }
+        if (S.cur.mode === 'del') {
+            S.cur.mode = null; setPrompt('명령 >>');
+            if (l !== 'y') return flash('지우기를 취소했습니다.');
+            try { await DB.delFile(area, fid, f.chunks || 1); flash('자료를 지웠습니다.', true); back(); } catch (e) { flash(errMsg(e)); }
+            return;
+        }
+        if (l === 'dn' || l === 'd') { S.cur.mode = 'proto'; $('#xf').innerHTML = protoMenu(); setPrompt('프로토콜 >>'); }
+        else if (l === 'v' && isPic) {
+            try {
+                const data = await getData();
+                openPopup(`<div class="viewer"><div class="vt">그림 보기 · ${esc(f.name)} · ${f.w || '?'}×${f.h || '?'}</div><img src="data:${esc(f.type)};base64,${data}" alt="${esc(f.desc || f.name)}"><div class="vf">[아무 키나 누르면 닫힘] · 휴대폰은 그림을 길게 눌러 저장</div></div>`);
+            } catch (e) { flash(errMsg(e)); }
+        }
+        else if (l === 'n') { if (idx >= 0 && idx < list.length - 1) go(idx + 1); else flash('마지막 자료입니다.'); }
+        else if (l === 'a') { if (idx > 0) go(idx - 1); else flash('가장 최근 자료입니다.'); }
+        else if (l === 'del' && mine) { S.cur.mode = 'del'; setPrompt('정말 지울까요? (Y/N) >>'); }
+        else if (l === 'l' || v === '') back();
+        else flash(`DN 받기${isPic ? ' · V 원본' : ''} · N/A 다음/앞 · L 목록 · P 이전`);
+    };
+    if (dn) S.cur.onInput('dn');
+};
+
+screens.upload = ({ area }) => {
+    const A = PDS[area];
+    const crumb = ['자료실', A.name, '올리기'];
+    if (!S.me || S.me.guest) {
+        show({ crumb, code:A.code, where:A.name, prompt:'명령 >>',
+            html: header(`${A.name} · 올리기`) + `<div class="c4">손님은 자료를 올릴 수 없습니다.</div><div class="dim">접속을 끊고(X) new 로 가입한 뒤 다시 오세요.</div>${rule()}${navHint()}`,
+            onInput(v) { if (v === '') back(); } });
+        return;
+    }
+    const st = { step:'desc', desc:'', proto:'Z-modem' };
+    const picker = $('#fpick');
+    const base = () => header(`${A.name} · 올리기`) +
+        `<div class="ph"><div><span class="lab">올린이</span>: <span class="c1">${esc(S.nick)}</span></div>${st.desc ? `<div><span class="lab">설명</span>: <span class="hi">${esc(st.desc)}</span></div>` : ''}${st.step !== 'desc' && st.step !== 'proto' ? `<div><span class="lab">방식</span>: ${esc(st.proto)}</div>` : ''}</div>${rule()}`;
+    const openPicker = () => {
+        picker.value = '';
+        picker.accept = area === 'pic' ? 'image/*' : '';
+        picker.click();
+    };
+    const render = () => {
+        if (st.step === 'desc') show({ crumb, code:A.code, where:`${A.name} (올리는 중)`, raw:true, prompt:'설명 >>',
+            html: base() + `<div class="c1">올릴 자료의 설명(제목)을 한 줄로 쓰세요. (빈 줄 Enter 는 취소)</div>` });
+        else if (st.step === 'proto') show({ prompt:'프로토콜 >>', html: base() + protoMenu() });
+        else if (st.step === 'pick') show({ prompt:'명령 >>',
+            html: base() + `<div class="c2">${esc(st.proto)} 수신 대기 중 ...</div><div class="c1">보낼 ${area === 'pic' ? '그림' : '파일'}을 고르세요. (최대 1.44MB${area === 'pic' ? ', 큰 사진은 자동으로 줄입니다' : ''})</div>
+<button type="button" class="pickbtn" id="pickbtn">[ 파일 고르기 ]</button><div id="xf"></div>${rule()}<div class="hint"><span class="k">Enter</span> 파일 고르기 · <span class="k">/a</span> 취소</div>` });
+        const pb = $('#pickbtn'); if (pb) pb.onclick = openPicker;
+    };
+    render();
+    const send = async file => {
+        if (!file) return;
+        let blob = file, w = 0, h = 0, type = file.type || 'application/octet-stream';
+        if (area === 'pic') {
+            if (!type.startsWith('image/')) return flash('그림 자료실에는 그림 파일만 올릴 수 있습니다.');
+            try { ({ blob, w, h, type } = await shrinkImage(file)); }
+            catch (e) { return flash('그림을 읽지 못했습니다. 다른 형식으로 올려 주세요.'); }
+        }
+        if (blob.size > DISK) return flash(`디스켓 한 장(1.44MB)보다 큰 자료는 올릴 수 없습니다. (${fmtSize(blob.size)})`);
+        let name = file.name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60) || 'file';
+        if (area === 'pic' && type === 'image/jpeg' && blob !== file) name = name.replace(/\.[^.]+$/, '') + '.jpg';
+        st.step = 'send'; S.cur.busy = true; setPrompt('전송 중 ...');
+        const pb = $('#pickbtn'); if (pb) pb.remove();
+        const box = transferBox($('#xf'), { dir:'up', proto:st.proto, name, size:blob.size });
+        try {
+            const b64 = await readAsB64(blob);
+            const chunks = [];
+            for (let i = 0; i < b64.length; i += CHUNK) chunks.push(b64.slice(i, i + CHUNK));
+            const fid = DB.newFileId(area);
+            await DB.putFile(area, fid, { name, size:blob.size, type, desc:st.desc, author:S.nick, w, h }, chunks, (i, n) => box.set(i / n));
+            await box.complete();
+            S.cur.busy = false;
+            flash('자료가 올라갔습니다. 고맙습니다!', true);
+            await sleep(900);
+            if (S.cur && S.cur.name === 'upload') back();
+        } catch (e) {
+            box.fail(errMsg(e));
+            S.cur.busy = false; st.step = 'pick'; setPrompt('명령 >>');
+        }
+    };
+    picker.onchange = () => { if (S.cur && S.cur.name === 'upload' && st.step === 'pick') send(picker.files[0]); };
+    picker.oncancel = () => { if (st.step === 'pick') flash('파일을 고르지 않았습니다. Enter 로 다시 고르세요.'); };
+    S.cur.onLeave = () => { picker.onchange = null; picker.oncancel = null; };
+    S.cur.onInput = raw => {
+        const v = raw.trim();
+        if (S.cur.busy) return flash('전송 중입니다. 잠시 기다리세요.');
+        if (v.toLowerCase() === '/a') { flash('올리기를 취소했습니다.'); return back(); }
+        if (st.step === 'desc') {
+            if (!v) return back();
+            st.desc = v.slice(0, 60); st.step = 'proto'; return render();
+        }
+        if (st.step === 'proto') {
+            const p = pickProto(v);
+            if (!p) return flash('1~4 중에서 고르세요.');
+            st.proto = p; st.step = 'pick'; render();
+            openPicker();
+            return;
+        }
+        if (st.step === 'pick') openPicker();
+    };
+};
+
+/* =====================================================================
    접속 · 로그인 · 종료
    ===================================================================== */
 function bye() {
     leaveCurrent();
-    DB.delPresence();
+    DB.delPresence().finally(() => AUTH.logout());
     clearInterval(hbTimer);
     const used = fmtDur(Date.now() - S.connectedAt);
     S.phase = 'dead';
@@ -1295,25 +1827,37 @@ OK
     renderStatus();
 }
 
-function openPopup() {
+let popupClose = null;
+function openPopup(html, onClose = null) {
+    S.prevPhase = S.phase === 'popup' ? S.prevPhase : S.phase;
     S.phase = 'popup';
-    ui.popup.innerHTML = `<div class="box" style="max-width:34em;width:100%;margin:0"><span class="cap">[ 알 림 마 당 ]</span>
-<div class="c3">환영합니다! PC통신 실시간 대화방입니다.</div>
-<div class="gap"></div>
-<div class="c1">1. 건전한 통신 예절을 지켜 주세요.<br>
-2. 새로 생긴 게시판 · 동호회 · 한줄메모를 둘러보세요.<br>
-3. 대화방 명령어: /j 방이름, /n 대화명<br>
-4. 테마 · 글꼴은 8. 환경설정 에서 바꿉니다.</div>
-<div class="gap"></div>
-<div class="c2 center">[ 아무 키나 누르시면 창이 닫힙니다 ]</div></div>`;
+    popupClose = onClose;
+    ui.popup.innerHTML = html;
     ui.popup.classList.add('on');
     focusCmd();
 }
 function closePopup() {
     ui.popup.classList.remove('on');
+    ui.popup.innerHTML = '';
+    S.phase = S.prevPhase === 'popup' ? 'run' : (S.prevPhase || 'run');
+    const f = popupClose; popupClose = null;
+    if (f) f();
+}
+function noticePopup() {
     S.phase = 'run';
-    hbTimer = setInterval(heartbeat, 60000);
-    top();
+    openPopup(`<div class="box" style="max-width:34em;width:100%;margin:0"><span class="cap">[ 알 림 마 당 ]</span>
+<div class="c3">환영합니다! My Way PC통신입니다.</div>
+<div class="gap"></div>
+<div class="c1">1. 건전한 통신 예절을 지켜 주세요.<br>
+2. 게시판 · 동호회 · 한줄메모를 둘러보세요.<br>
+3. 그림 · 파일은 5. 자료실 에서 올리고 받습니다.<br>
+4. 대화방에서 /save (F9) 로 대화를 사진으로 저장합니다.<br>
+5. 테마 · 글꼴은 8. 환경설정 에서 바꿉니다.</div>
+<div class="gap"></div>
+<div class="c2 center">[ 아무 키나 누르시면 창이 닫힙니다 ]</div></div>`, () => {
+        hbTimer = setInterval(heartbeat, 60000);
+        top();
+    });
 }
 
 async function boot() {
@@ -1331,47 +1875,146 @@ async function boot() {
     await sleep(300);
     if (ok) {
         put('CONNECT 19200/ARQ/V42BIS', 'c3');
-        put('&nbsp;'); put('통신망에 연결되었습니다.', 'hi');
+        put('&nbsp;'); put('My Way 통신망에 연결되었습니다.', 'hi');
     } else {
         put('NO CARRIER', 'c4');
         put('&nbsp;'); put('서버에 연결하지 못했습니다. 오프라인 모드로 들어갑니다.', 'c2');
-        put('(이 모드에서 쓴 글과 대화는 이 화면에서만 보입니다)', 'dim');
+        put('(이 모드의 회원·글·대화는 이 컴퓨터에만 남습니다)', 'dim');
     }
+    S.online = ok;
     renderStatus();
     await sleep(400);
-    login(out, put);
+    login(put);
 }
 
-function login(out, put) {
+function login(put) {
     S.phase = 'login';
-    const last = LS.get('lastLogin', 0);
-    const saved = LS.get('nick', null);
+    const lastId = LS.get('lastId', '');
+    let step = 'id', tries = 0, busy = false;
+    const form = {};
+    const MAX_TRIES = 3;
+    const ask = (label, secret = false) => {
+        setPrompt(label);
+        ui.cmd.type = secret ? 'password' : 'text';
+        ui.cmd.value = '';
+        ui.cmd.disabled = false;
+        focusCmd();
+    };
+    const guide = () => {
+        put(`대화명을 입력하세요. 처음 오셨으면 <span class="c2">new</span> (가입), 둘러보기만 하려면 <span class="c2">guest</span>`, 'dim');
+        if (lastId) put(`최근 접속한 대화명 : <span class="c1">${esc(lastId)}</span>`, 'dim');
+    };
+
     put('&nbsp;');
     put(rule('═', 'c1'));
-    put(`<span class="inv">HiTEL</span> &nbsp;<span class="c1">PC통신 실시간 대화방에 오신 것을 환영합니다</span>`);
+    put(`<span class="inv">My Way</span> &nbsp;<span class="c1">My Way PC통신에 오신 것을 환영합니다</span>`);
     put(rule('═', 'c1'));
-    put(`이용자ID 를 입력하세요. ${saved ? `그냥 Enter 를 누르면 <span class="c2">${esc(saved)}</span>(으)로 접속합니다.` : '손님은 그냥 Enter 를 누르세요.'}`, 'dim');
+    guide();
     setTop(['로그인'], '');
-    setPrompt('이용자ID :');
-    ui.cmd.disabled = false;
     S.cur = { name:'login', crumb:['로그인'] };
-    S.cur.onInput = async v => {
-        if (v) { if (!setNick(v)) return; } else if (!saved) setNick(S.nick);
-        put(`이용자ID : <span class="hi">${esc(S.nick)}</span>`);
-        S.phase = 'boot';
-        ui.cmd.disabled = true;
-        await sleep(250);
+    ask('대화명 :');
+
+    const done = async me => {
+        S.me = me;
+        S.nick = me.nick;
+        DB = NET ? makeRemote(NET.F, NET.db, me.uid) : makeLocal(me.uid);
+        renderStatus();
+        if (!me.guest) LS.set('lastId', me.id);
+        const last = LS.get('lastLogin.' + me.id, 0);
         put('&nbsp;');
-        put(`<span class="c2">${esc(S.nick)}</span>님, 반갑습니다.`);
-        if (last) put(`최근 접속 : ${fmtFull(last)}`, 'dim');
+        put(`<span class="c2">${esc(me.nick)}</span>님, 반갑습니다.${me.guest ? ' <span class="dim">(손님 접속)</span>' : ''}`);
+        if (last && !me.guest) put(`최근 접속 : ${fmtFull(last)}`, 'dim');
         put(`오늘 날짜 : ${fmtFull(Date.now())}`, 'dim');
-        LS.set('lastLogin', Date.now());
+        if (!me.guest) LS.set('lastLogin.' + me.id, Date.now());
         S.connectedAt = Date.now();
+        ui.cmd.type = 'text';
         await sleep(700);
         ui.cmd.disabled = false;
-        openPopup();
+        noticePopup();
     };
-    focusCmd();
+    const fail = msg => { put(msg, 'c4'); };
+
+    S.cur.onInput = async raw => {
+        if (busy) return;
+        const v = raw.trim();
+        switch (step) {
+        case 'id': {
+            if (!v) { guide(); return; }
+            const l = v.toLowerCase();
+            if (l === 'new') { put(`대화명 : <span class="hi">new</span>`); put('&nbsp;'); put('[ 새 이용자 가입 ]', 'c2');
+                put('대화명은 2~10자 (영문 · 숫자 · 한글 · _), 대·소문자를 구분합니다. 가입하면 바꿀 수 없습니다.', 'dim');
+                step = 'newId'; ask('새 대화명 :'); return; }
+            if (l === 'guest') {
+                put(`대화명 : <span class="hi">guest</span>`);
+                busy = true; ui.cmd.disabled = true;
+                try { await done(await AUTH.guest()); }
+                catch (e) { busy = false; fail(authMessage(e)); ask('대화명 :'); }
+                return;
+            }
+            put(`대화명 : <span class="hi">${esc(v)}</span>`);
+            if (!ID_RE.test(v)) { fail('대화명 또는 비밀번호가 틀립니다.'); return countFail(); }
+            form.id = v; step = 'pw'; ask('비밀번호 :', true); return;
+        }
+        case 'pw': {
+            put(`비밀번호 : <span class="hi">${'*'.repeat(Math.min(raw.length, 16))}</span>`);
+            busy = true; ui.cmd.disabled = true; setPrompt('확인 중 ...');
+            try { const me = await AUTH.login(form.id, raw); await done(me); }
+            catch (e) {
+                busy = false;
+                fail(authMessage(e));
+                const c = e && e.code;
+                if (['auth/operation-not-allowed', 'auth/network-request-failed', 'auth/too-many-requests', 'auth/admin-restricted-operation'].includes(c) || (e && e.message === 'timeout')) {
+                    step = 'id'; ask('대화명 :'); return;
+                }
+                countFail();
+            }
+            return;
+        }
+        case 'newId': {
+            if (!v) { put('가입을 취소했습니다.', 'dim'); step = 'id'; guide(); ask('대화명 :'); return; }
+            put(`새 대화명 : <span class="hi">${esc(v)}</span>`);
+            if (!ID_RE.test(v) || ['new', 'guest'].includes(v.toLowerCase())) { fail('쓸 수 없는 대화명입니다. 2~10자 영문 · 숫자 · 한글 · _ 만 됩니다.'); ask('새 대화명 :'); return; }
+            form.id = v; step = 'newPw';
+            put('비밀번호는 6자 이상, 대·소문자와 띄어쓰기까지 정확히 구분합니다.', 'dim');
+            ask('비밀번호 :', true); return;
+        }
+        case 'newPw': {
+            put(`비밀번호 : <span class="hi">${'*'.repeat(Math.min(raw.length, 16))}</span>`);
+            if (raw.length < 6) { fail('비밀번호는 6자 이상이어야 합니다.'); ask('비밀번호 :', true); return; }
+            form.pw = raw; step = 'newPw2'; ask('비밀번호 확인 :', true); return;
+        }
+        case 'newPw2': {
+            put(`비밀번호 확인 : <span class="hi">${'*'.repeat(Math.min(raw.length, 16))}</span>`);
+            if (raw !== form.pw) { fail('비밀번호가 서로 다릅니다. 다시 입력하세요.'); step = 'newPw'; ask('비밀번호 :', true); return; }
+            busy = true; ui.cmd.disabled = true; setPrompt('가입 중 ...');
+            try {
+                const me = await AUTH.signup(form.id, form.pw);
+                put(`가입을 축하합니다! 다음부터 대화명 <span class="c2">${esc(form.id)}</span> 과 비밀번호로 접속하세요.`, 'c3');
+                form.pw = '';
+                await done(me);
+            } catch (e) {
+                busy = false; form.pw = '';
+                fail(authMessage(e));
+                if (e && e.code === 'auth/email-already-in-use') { step = 'newId'; ask('새 대화명 :'); }
+                else { step = 'id'; guide(); ask('대화명 :'); }
+            }
+            return;
+        }
+        }
+    };
+    function countFail() {
+        tries++;
+        if (tries >= MAX_TRIES) {
+            put('&nbsp;');
+            put(`${MAX_TRIES}번 틀려서 접속을 끊습니다.`, 'c4');
+            put('NO CARRIER', 'c4');
+            put('다시 접속하려면 [Enter] 를 누르세요.', 'dim');
+            S.phase = 'dead'; ui.cmd.type = 'text'; setPrompt('>>'); ui.cmd.disabled = false; renderStatus();
+            return;
+        }
+        put(`(${tries}/${MAX_TRIES}번 틀림)`, 'dim');
+        step = 'id'; ask('대화명 :');
+    }
 }
 
 window.addEventListener('pagehide', () => { if (S.phase === 'run') { leaveCurrent(); DB.delPresence(); } });
