@@ -484,6 +484,10 @@ function makeRemote(F, db, uid) {
         setPresence(p) { return F.setDoc(ref('presence', uid), { ...p, lastSeen:Date.now() }).catch(() => {}); },
         delPresence() { return F.deleteDoc(ref('presence', uid)).catch(() => {}); },
         async listWho() { return rows(await F.getDocs(F.query(col('presence'), F.where('lastSeen', '>', Date.now() - 3*60*1000)))); },
+        /* 회원이 만든 동호회 */
+        async listClubs() { return rows(await F.getDocs(F.query(col('clubs'), F.orderBy('timestamp')))); },
+        addClub(id, c) { return F.setDoc(ref('clubs', id), { ...c, owner:uid, timestamp:Date.now() }); },
+        delClub(id) { return F.deleteDoc(ref('clubs', id)); },
         /* 자료실: 파일을 base64 조각으로 나눠 Firestore 에 저장 */
         newFileId(area) { return F.doc(col('pds', area, 'items')).id; },
         async putFile(area, id, meta, chunks, prog) {
@@ -516,7 +520,7 @@ function makeRemote(F, db, uid) {
 
 function makeLocal(uid = 'local') {
     const t0 = Date.now();
-    const chats = {}, subs = {}, posts = {}, comments = {}, files = {};
+    const chats = {}, subs = {}, posts = {}, comments = {}, files = {}, clubs = [];
     let seq = 0; const nid = () => 'L' + (++seq);
     let me = null;
     posts.free = [
@@ -549,6 +553,9 @@ function makeLocal(uid = 'local') {
         async setPresence(p) { me = { id:uid, ...p, lastSeen:Date.now() }; },
         async delPresence() { me = null; },
         async listWho() { return me ? [me] : []; },
+        async listClubs() { return [...clubs]; },
+        async addClub(id, c) { if (clubs.find(x => x.id === id)) throw { code:'permission-denied' }; clubs.push({ id, ...c, owner:uid, timestamp:Date.now() }); },
+        async delClub(id) { const i = clubs.findIndex(x => x.id === id); if (i >= 0) clubs.splice(i, 1); },
         newFileId() { return nid(); },
         async putFile(area, id, meta, chunks, prog) {
             for (let i = 0; i < chunks.length; i++) { await sleep(120); prog(i + 1, chunks.length); }
@@ -729,9 +736,23 @@ const GO = {
 };
 Object.entries(BOARDS).forEach(([id, b]) => GO[b.code.toLowerCase()] = ['board', { b:id }]);
 CLUBS.forEach(c => GO[c.code.toLowerCase()] = ['clubHome', { id:c.id }]);
+CLUBS.forEach(c => c.builtin = true);
+S.userClubs = [];
+const allClubs = () => [...CLUBS, ...S.userClubs];
+const findClub = id => allClubs().find(c => c.id === id);
+async function loadClubs() {
+    try {
+        const list = await DB.listClubs();
+        S.userClubs = list.map(c => ({ id:c.id, name:c.name, code:c.code, intro:c.intro || '', owner:c.owner, ownerNick:c.ownerNick, timestamp:c.timestamp }));
+    } catch (e) { S.clubErr = e; }
+    return S.userClubs;
+}
 
 function goCode(code) {
-    const g = GO[(code || '').toLowerCase().trim()];
+    const key = (code || '').toLowerCase().trim();
+    const uc = S.userClubs.find(c => c.code.toLowerCase() === key);
+    if (uc && !GO[key]) { nav('clubHome', { id:uc.id }); return; }
+    const g = GO[key];
     if (!g) { flash(`[${code}] 은(는) 없는 GO 코드입니다. (H: 도움말)`); return; }
     if (g[0] === 'main') top(); else nav(g[0], { ...(g[1] || {}) });
 }
@@ -926,13 +947,13 @@ const navHint = (extra = '') => `<div class="hint">${extra}${extra ? ' · ' : ''
 
 function boardInfo(b) {
     if (BOARDS[b]) return { name:BOARDS[b].name, code:BOARDS[b].code, crumb:['게시판', BOARDS[b].name] };
-    const c = CLUBS.find(c => 'club_' + c.id === b);
+    const c = allClubs().find(c => 'club_' + c.id === b);
     if (c) return { name:`${c.name} 게시판`, code:c.code, crumb:['동호회', c.name, '게시판'] };
     return { name:b, code:'', crumb:['게시판', b] };
 }
 function roomInfo(room) {
     if (room === 'lobby') return { title:'공개 로비', crumb:['대화실', '공개 로비'] };
-    const c = CLUBS.find(c => 'club_' + c.id === room);
+    const c = allClubs().find(c => 'club_' + c.id === room);
     if (c) return { title:`[${c.name}] 동호회 대화실`, crumb:['동호회', c.name, '대화실'] };
     return { title:`[${room}] 대화방`, crumb:['대화실', room] };
 }
@@ -1252,28 +1273,124 @@ screens.write = ({ b }) => {
 };
 
 /* 동호회 */
-screens.clubMenu = () => show({
-    crumb:['동호회'], code:'CLUB', where:'동호회 목록', prompt:'선택 >>',
-    html: header('동 호 회', '관심사가 같은 사람들의 모임') +
-        `<div class="menu one">${CLUBS.map((c, i) => mi(String(i+1), c.name, c.code, c.intro)).join('')}</div>${rule()}${navHint()}`,
-    onInput(v) {
-        const c = CLUBS[+v - 1];
-        if (c) nav('clubHome', { id:c.id }); else if (v) flash('없는 번호입니다.');
-    }
-});
-
-screens.clubHome = ({ id }) => {
-    const c = CLUBS.find(c => c.id === id);
+screens.clubMenu = async (_, id) => {
+    show({ crumb:['동호회'], code:'CLUB', where:'동호회 목록', prompt:'선택 >>', html:header('동 호 회') + loading(), onInput(){} });
+    S.clubErr = null;
+    await loadClubs();
+    if (stale(id)) return;
+    const list = allClubs();
+    const row = (c, i) => mi(String(i+1), esc(c.name), c.code,
+        c.builtin ? esc(c.intro) : `${esc(c.intro)} <span class="c1">· 시삽 ${esc(c.ownerNick || '?')}</span>`);
     show({
-        crumb:['동호회', c.name], code:c.code, where:`${c.name} 동호회`, prompt:'선택 >>',
-        html: `<div class="box"><span class="cap">[ ${esc(c.name)} ]</span><div class="c1">${esc(c.intro)}</div><div class="dim" style="margin-top:.4em">GO 코드: ${c.code}</div></div>
-<div class="menu one">${mi('1', '동호회 게시판', 'BBS')}${mi('2', '동호회 대화실', 'CHAT')}</div>${rule()}${navHint()}`,
+        html: header('동 호 회', '관심사가 같은 사람들의 모임') +
+            `<div class="ttl">■ 기본 동호회</div><div class="menu one">${CLUBS.map(row).join('')}</div>` +
+            `<div class="ttl" style="margin-top:.5em">■ 회원 동호회 (${S.userClubs.length})</div>` +
+            (S.userClubs.length ? `<div class="menu one">${S.userClubs.map((c, k) => row(c, CLUBS.length + k)).join('')}</div>` : '<div class="dim" style="padding-left:.5em">아직 회원이 만든 동호회가 없습니다.</div>') +
+            (S.clubErr ? `<div class="c4">${errMsg(S.clubErr)}</div>` : '') +
+            rule() + navHint('<span class="k">번호</span> 들어가기 · <span class="k">NEW</span> 동호회 개설'),
         onInput(v) {
-            if (v === '1') nav('board', { b:'club_' + c.id });
-            else if (v === '2') nav('chat', { room:'club_' + c.id });
-            else if (v) flash('1 게시판 · 2 대화실');
+            const l = v.toLowerCase();
+            if (l === 'new' || l === 'n' || l === '개설') return nav('clubNew');
+            const c = list[+v - 1];
+            if (c) nav('clubHome', { id:c.id }); else if (v) flash('번호 · NEW 개설 · P 이전');
         }
     });
+};
+
+screens.clubHome = async ({ id:cid }, id) => {
+    let c = findClub(cid);
+    if (!c) { await loadClubs(); if (stale(id)) return; c = findClub(cid); }
+    if (!c) {
+        show({ crumb:['동호회'], code:'CLUB', where:'동호회', prompt:'명령 >>', html:`<div class="c4">폐쇄되었거나 없는 동호회입니다.</div>${navHint()}`, onInput(v) { if (v === '') back(); } });
+        return;
+    }
+    const isOwner = !c.builtin && c.owner && c.owner === DB.uid;
+    show({
+        crumb:['동호회', c.name], code:c.code, where:`${c.name} 동호회`, prompt:'선택 >>',
+        html: `<div class="box"><span class="cap">[ ${esc(c.name)} ]</span><div class="c1">${esc(c.intro)}</div>
+<div class="dim" style="margin-top:.4em">GO 코드: ${esc(c.code)} · 시삽: ${c.builtin ? '운영자' : esc(c.ownerNick || '?')}${c.timestamp ? ' · 개설일: ' + fmtFull(c.timestamp).slice(0, 10) : ''}</div></div>
+<div class="menu one">${mi('1', '동호회 게시판', 'BBS')}${mi('2', '동호회 대화실', 'CHAT')}${isOwner ? mi('9', '동호회 폐쇄', 'DEL', '시삽만') : ''}</div>${rule()}${navHint()}`,
+        onInput(v) {
+            if (S.cur.mode === 'del') {
+                S.cur.mode = null; setPrompt('선택 >>');
+                if (v !== c.name) return flash('이름이 맞지 않아 폐쇄를 취소했습니다.');
+                DB.delClub(c.id).then(() => {
+                    S.userClubs = S.userClubs.filter(x => x.id !== c.id);
+                    flash(`[${c.name}] 동호회를 폐쇄했습니다.`, true);
+                    back();
+                }).catch(e => flash(errMsg(e)));
+                return;
+            }
+            if (v === '1') nav('board', { b:'club_' + c.id });
+            else if (v === '2') nav('chat', { room:'club_' + c.id });
+            else if ((v === '9' || v.toLowerCase() === 'del') && isOwner) {
+                S.cur.mode = 'del';
+                setPrompt('동호회 이름 >>');
+                flash(`정말 폐쇄하려면 동호회 이름 [${c.name}] 을 그대로 입력하세요. (다르면 취소)`);
+            }
+            else if (v) flash(isOwner ? '1 게시판 · 2 대화실 · 9 폐쇄' : '1 게시판 · 2 대화실');
+        }
+    });
+};
+
+screens.clubNew = () => {
+    const crumb = ['동호회', '동호회 개설'];
+    if (!S.me || S.me.guest) {
+        show({ crumb, code:'CLUB', where:'동호회 개설', prompt:'명령 >>',
+            html: header('동호회 개설') + `<div class="c4">손님은 동호회를 만들 수 없습니다.</div><div class="dim">접속을 끊고(X) 회원가입한 뒤 다시 오세요.</div>${rule()}${navHint()}`,
+            onInput(v) { if (v === '') back(); } });
+        return;
+    }
+    const st = { step:'name', name:'', code:'', intro:'' };
+    const render = () => {
+        const prompts = { name:'동호회 이름 >>', code:'GO 코드 >>', intro:'소개 >>', ok:'개설할까요? (Y/N) >>' };
+        const guide = {
+            name:'동호회 이름을 정하세요. (2~12자)',
+            code:'바로 가기용 GO 코드를 정하세요. 영문 · 숫자 2~8자 (예: ANIME → go anime)',
+            intro:'동호회를 한 줄로 소개해 주세요. (40자 이내)',
+            ok:'이대로 만들까요? Y 개설 · N 취소'
+        };
+        show({ crumb, code:'CLUB', where:'동호회 개설', raw:true, prompt:prompts[st.step],
+            html: header('동 호 회 개 설', '만든 사람이 시삽이 되어 폐쇄도 할 수 있습니다') +
+                `<div class="ph">
+<div><span class="lab">이름</span>: <span class="hi">${esc(st.name) || '<span class="dim">-</span>'}</span></div>
+<div><span class="lab">GO 코드</span>: <span class="c2">${esc(st.code) || '<span class="dim">-</span>'}</span></div>
+<div><span class="lab">소개</span>: ${esc(st.intro) || '<span class="dim">-</span>'}</div>
+<div><span class="lab">시삽</span>: <span class="c1">${esc(S.nick)}</span></div></div>${rule()}
+<div class="c1">${guide[st.step]}</div><div class="hint">빈 줄 Enter 또는 <span class="k">/a</span> 는 취소</div>` });
+    };
+    render();
+    S.cur.onInput = async raw => {
+        const v = raw.trim();
+        if (!v || v.toLowerCase() === '/a') { flash('동호회 개설을 취소했습니다.'); return back(); }
+        if (st.step === 'name') {
+            if (v.length < 2 || v.length > 12) return flash('이름은 2~12자로 정하세요.');
+            if (allClubs().some(c => c.name === v)) return flash('같은 이름의 동호회가 이미 있습니다.');
+            st.name = v; st.step = 'code'; return render();
+        }
+        if (st.step === 'code') {
+            const code = v.toUpperCase();
+            if (!/^[A-Z0-9]{2,8}$/.test(code)) return flash('GO 코드는 영문 · 숫자 2~8자입니다.');
+            if (GO[code.toLowerCase()] || allClubs().some(c => c.code.toUpperCase() === code)) return flash(`[${code}] 는 이미 쓰고 있는 GO 코드입니다.`);
+            st.code = code; st.step = 'intro'; return render();
+        }
+        if (st.step === 'intro') { st.intro = v.slice(0, 40); st.step = 'ok'; return render(); }
+        if (st.step === 'ok') {
+            if (v.toLowerCase() !== 'y') { flash('동호회 개설을 취소했습니다.'); return back(); }
+            const cid = 'u_' + st.code.toLowerCase();
+            setPrompt('개설 중 ...');
+            try {
+                await DB.addClub(cid, { name:st.name, code:st.code, intro:st.intro, ownerNick:S.nick });
+            } catch (e) {
+                setPrompt(prompts_ok);
+                return flash(e && e.code === 'permission-denied' ? '이미 있는 GO 코드이거나 서버 규칙이 막고 있습니다.' : errMsg(e));
+            }
+            S.userClubs.push({ id:cid, name:st.name, code:st.code, intro:st.intro, owner:DB.uid, ownerNick:S.nick, timestamp:Date.now() });
+            flash(`[${st.name}] 동호회가 생겼습니다! 당신이 시삽입니다.`, true);
+            nav('clubHome', { id:cid }, { replace:true });
+        }
+    };
+    const prompts_ok = '개설할까요? (Y/N) >>';
 };
 
 /* 한줄메모 */
@@ -1385,7 +1502,7 @@ screens.help = () => show({
 <span class="k">T</span><span>처음 화면 (F2)</span>
 <span class="k">H</span><span>도움말 (F1)</span>
 <span class="k">X</span><span>접속 종료 (F10)</span>
-<span class="k">GO 코드</span><span>바로 가기 — TOP NOTICE CHAT LOBBY ROOM BBS ${Object.values(BOARDS).map(b => b.code).join(' ')} CLUB ${CLUBS.map(c => c.code).join(' ')} MEMO WHO SET THEME FONT</span>
+<span class="k">GO 코드</span><span>바로 가기 — TOP NOTICE CHAT LOBBY ROOM BBS ${Object.values(BOARDS).map(b => b.code).join(' ')} CLUB ${allClubs().map(c => c.code).join(' ')} MEMO WHO SET THEME FONT</span>
 <span class="k">↑ / ↓</span><span>앞서 입력한 내용 다시 부르기</span>
 </div>
 <div class="gap"></div><div class="ttl">■ 대화실 (/ 로 시작)</div>
@@ -1406,6 +1523,11 @@ screens.help = () => show({
 <span class="k">N / B</span><span>다음 쪽 / 앞 쪽 (읽을 때는 N 다음글 · A 앞글)</span>
 <span class="k">C</span><span>댓글 쓰기 (글 읽는 중)</span>
 <span class="k">D</span><span>내 글 지우기</span>
+</div>
+<div class="gap"></div><div class="ttl">■ 동호회</div>
+<div class="kv">
+<span class="k">NEW</span><span>동호회 개설 (회원만) — 이름 · GO 코드 · 소개를 정하면 만든 사람이 시삽</span>
+<span class="k">9</span><span>동호회 폐쇄 (시삽만, 동호회 이름을 그대로 입력해야 함)</span>
 </div>
 <div class="gap"></div><div class="ttl">■ 자료실</div>
 <div class="kv">
@@ -1955,6 +2077,7 @@ function login(put) {
         S.me = me;
         S.nick = me.nick;
         DB = NET ? makeRemote(NET.F, NET.db, me.uid) : makeLocal(me.uid);
+        loadClubs();
         renderStatus();
         if (!me.guest) LS.set('lastId', me.id);
         const last = LS.get('lastLogin.' + me.id, 0);
