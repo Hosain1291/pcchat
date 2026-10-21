@@ -450,6 +450,12 @@ const errMsg = e => (e && e.code === 'permission-denied')
 /* =====================================================================
    데이터 계층: 파이어베이스(온라인) / 메모리(오프라인)
    ===================================================================== */
+/* 작업 n개를 동시에 limit개씩 처리 */
+async function pool(n, limit, fn) {
+    let next = 0;
+    const worker = async () => { while (next < n) { const i = next++; await fn(i); } };
+    await Promise.all(Array.from({ length:Math.min(limit, n) }, worker));
+}
 function makeRemote(F, db, uid) {
     const col = (...p) => F.collection(db, ...p);
     const ref = (...p) => F.doc(db, ...p);
@@ -481,26 +487,28 @@ function makeRemote(F, db, uid) {
         /* 자료실: 파일을 base64 조각으로 나눠 Firestore 에 저장 */
         newFileId(area) { return F.doc(col('pds', area, 'items')).id; },
         async putFile(area, id, meta, chunks, prog) {
-            for (let i = 0; i < chunks.length; i++) {
+            let done = 0;
+            await pool(chunks.length, 4, async i => {
                 await F.setDoc(ref('pds', area, 'items', id, 'chunks', String(i)), { data:chunks[i] });
-                prog(i + 1, chunks.length);
-            }
+                prog(++done, chunks.length);
+            });
             await F.setDoc(ref('pds', area, 'items', id), { ...meta, uid, downloads:0, chunks:chunks.length, timestamp:Date.now() });
         },
         async listFiles(area) { return rows(await F.getDocs(F.query(col('pds', area, 'items'), F.orderBy('timestamp','desc'), F.limit(200)))); },
         async getFile(area, id) { const d = await F.getDoc(ref('pds', area, 'items', id)); return d.exists() ? { id:d.id, ...d.data() } : null; },
         async getChunks(area, id, n, prog) {
-            const out = [];
-            for (let i = 0; i < n; i++) {
+            const out = new Array(n);
+            let done = 0;
+            await pool(n, 4, async i => {
                 const d = await F.getDoc(ref('pds', area, 'items', id, 'chunks', String(i)));
                 if (!d.exists()) throw new Error('자료 조각이 없습니다');
-                out.push(d.data().data); prog(i + 1, n);
-            }
+                out[i] = d.data().data; prog(++done, n);
+            });
             return out.join('');
         },
         incDown(area, id) { return F.updateDoc(ref('pds', area, 'items', id), { downloads:F.increment(1) }).catch(() => {}); },
         async delFile(area, id, n) {
-            for (let i = 0; i < n; i++) await F.deleteDoc(ref('pds', area, 'items', id, 'chunks', String(i))).catch(() => {});
+            await pool(n, 4, i => F.deleteDoc(ref('pds', area, 'items', id, 'chunks', String(i))).catch(() => {}));
             await F.deleteDoc(ref('pds', area, 'items', id));
         }
     };
@@ -1403,7 +1411,7 @@ screens.help = () => show({
 <div class="kv">
 <span class="k">번호</span><span>자료 보기 (그림 자료실은 원본 그림이 바로 보임)</span>
 <span class="k">S</span><span>그림을 16색 ANSI 화면으로 바꿔 보기 / 원본으로 돌아가기</span>
-<span class="k">UP</span><span>자료 올리기 — 설명 입력 → 프로토콜 선택 → 파일 고르기 (최대 1.44MB, 회원만)</span>
+<span class="k">UP</span><span>자료 올리기 — 설명 입력 → 프로토콜 선택 → 파일 고르기 (최대 60MB, 회원만)</span>
 <span class="k">DN 번호</span><span>자료 받기 (보는 중에는 DN 만)</span>
 <span class="k">V</span><span>그림 원본 보기</span>
 <span class="k">DEL</span><span>내가 올린 자료 지우기</span>
@@ -1492,7 +1500,9 @@ const PDS = {
     file: { name:'공개 자료실', code:'FILE', desc:'프로그램 · 문서 · 음악 등 모든 자료' },
     pic:  { name:'그림 자료실', code:'PIC',  desc:'사진 · 그림 (원본 그대로 보기 · 16색 ANSI 보기)' }
 };
-const DISK = 1457664; // 1.44MB 디스켓 한 장
+const DISK = 1457664;            // 1.44MB 디스켓 한 장
+const MAXFILE = 60 * 1024 * 1024; // 한 번에 올릴 수 있는 최대 크기 (60MB)
+const disks = n => Math.max(1, Math.ceil(n / DISK));
 const CHUNK = 700000;
 const PROTOS = ['Z-modem', 'Y-modem', 'X-modem', 'Kermit'];
 const fmtSize = n => n >= 1024 * 1024 ? (n / 1048576).toFixed(2) + 'MB' : n >= 1024 ? Math.ceil(n / 1024) + 'KB' : n + 'B';
@@ -1512,7 +1522,7 @@ function transferBox(el, { dir, proto, name, size }) {
         const sec = Math.max(.001, (performance.now() - t0) / 1000);
         el.innerHTML = `<div class="xfer"><span class="cap">[ ${esc(proto)} ${dir === 'up' ? '올리기 (Upload)' : '받기 (Download)'} ]</span>
 <div><span class="c2">파일 이름</span> : ${esc(name)}</div>
-<div><span class="c2">파일 크기</span> : ${commas(size)} 바이트</div>
+<div><span class="c2">파일 크기</span> : ${commas(size)} 바이트 <span class="dim">(디스켓 ${disks(size)}장 분량)</span></div>
 <div><span class="c2">전송 블록</span> : ${commas(Math.floor(shown * blocks))} / ${commas(blocks)} &nbsp;<span class="dim">(${blk} 바이트)</span></div>
 <div class="bar">${'█'.repeat(on)}<span class="dim">${'░'.repeat(cells - on)}</span> ${pct}%</div>
 <div><span class="c2">전송 속도</span> : ${commas(Math.round(shown * size / sec))} cps &nbsp; <span class="c2">경과</span> : ${fmtDur(sec * 1000)}</div>
@@ -1543,9 +1553,14 @@ function readAsB64(blob) {
     });
 }
 function b64ToBlob(b64, type) {
-    const bin = atob(b64); const u8 = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
-    return new Blob([u8], { type:type || 'application/octet-stream' });
+    const parts = [];
+    const STEP = 4 * 262144; // base64 4글자 단위로 끊어서 디코딩
+    for (let p = 0; p < b64.length; p += STEP) {
+        const bin = atob(b64.slice(p, p + STEP)); const u8 = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+        parts.push(u8);
+    }
+    return new Blob(parts, { type:type || 'application/octet-stream' });
 }
 function loadImg(src) {
     return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
@@ -1555,15 +1570,15 @@ async function shrinkImage(file) {
     try {
         const im = await loadImg(url);
         const w = im.naturalWidth, h = im.naturalHeight;
-        if (file.size <= DISK && /^image\/(jpeg|png|gif|webp|bmp)$/.test(file.type)) return { blob:file, w, h, type:file.type };
-        let scale = Math.min(1, 1280 / Math.max(w, h)), q = .85, blob;
+        if (file.size <= MAXFILE && /^image\/(jpeg|png|gif|webp|bmp)$/.test(file.type)) return { blob:file, w, h, type:file.type };
+        let scale = Math.min(1, 2560 / Math.max(w, h)), q = .9, blob;
         for (let k = 0; k < 6; k++) {
             const cv = document.createElement('canvas');
             cv.width = Math.round(w * scale); cv.height = Math.round(h * scale);
             const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
             cx.drawImage(im, 0, 0, cv.width, cv.height);
             blob = await new Promise(r => cv.toBlob(r, 'image/jpeg', q));
-            if (blob && blob.size <= DISK) return { blob, w:cv.width, h:cv.height, type:'image/jpeg' };
+            if (blob && blob.size <= MAXFILE) return { blob, w:cv.width, h:cv.height, type:'image/jpeg' };
             scale *= .75; q -= .08;
         }
         return { blob, w, h, type:'image/jpeg' };
@@ -1597,7 +1612,7 @@ screens.pdsMenu = () => show({
     crumb:['자료실'], code:'PDS', where:'자료실', prompt:'선택 >>',
     html: header('자 료 실', '그림과 파일을 올리고 받는 곳') +
         `<div class="menu one">${mi('1', PDS.pic.name, PDS.pic.code, PDS.pic.desc)}${mi('2', PDS.file.name, PDS.file.code, PDS.file.desc)}</div>
-<div class="hint">한 번에 디스켓 한 장(1.44MB)까지 올릴 수 있습니다. 올리기는 회원만 됩니다.</div>${rule()}${navHint()}`,
+<div class="hint">한 번에 60MB(디스켓 약 43장 분량)까지 올릴 수 있습니다. 올리기는 회원만 됩니다.</div>${rule()}${navHint()}`,
     onInput(v) {
         if (v === '1') nav('files', { area:'pic' });
         else if (v === '2') nav('files', { area:'file' });
@@ -1753,7 +1768,7 @@ screens.upload = ({ area }) => {
             html: base() + `<div class="c1">올릴 자료의 설명(제목)을 한 줄로 쓰세요. (빈 줄 Enter 는 취소)</div>` });
         else if (st.step === 'proto') show({ prompt:'프로토콜 >>', html: base() + protoMenu() });
         else if (st.step === 'pick') show({ prompt:'명령 >>',
-            html: base() + `<div class="c2">${esc(st.proto)} 수신 대기 중 ...</div><div class="c1">보낼 ${area === 'pic' ? '그림' : '파일'}을 고르세요. (최대 1.44MB${area === 'pic' ? ', 큰 사진은 자동으로 줄입니다' : ''})</div>
+            html: base() + `<div class="c2">${esc(st.proto)} 수신 대기 중 ...</div><div class="c1">보낼 ${area === 'pic' ? '그림' : '파일'}을 고르세요. (최대 60MB${area === 'pic' ? ', 60MB 넘는 사진은 자동으로 줄입니다' : ''})</div>
 <button type="button" class="pickbtn" id="pickbtn">[ 파일 고르기 ]</button><div id="xf"></div>${rule()}<div class="hint"><span class="k">Enter</span> 파일 고르기 · <span class="k">/a</span> 취소</div>` });
         const pb = $('#pickbtn'); if (pb) pb.onclick = openPicker;
     };
@@ -1766,7 +1781,7 @@ screens.upload = ({ area }) => {
             try { ({ blob, w, h, type } = await shrinkImage(file)); }
             catch (e) { return flash('그림을 읽지 못했습니다. 다른 형식으로 올려 주세요.'); }
         }
-        if (blob.size > DISK) return flash(`디스켓 한 장(1.44MB)보다 큰 자료는 올릴 수 없습니다. (${fmtSize(blob.size)})`);
+        if (blob.size > MAXFILE) return flash(`60MB 보다 큰 자료는 올릴 수 없습니다. (${fmtSize(blob.size)})`);
         let name = file.name.replace(/[\\/:*?"<>|]+/g, '_').slice(0, 60) || 'file';
         if (area === 'pic' && type === 'image/jpeg' && blob !== file) name = name.replace(/\.[^.]+$/, '') + '.jpg';
         st.step = 'send'; S.cur.busy = true; setPrompt('전송 중 ...');
