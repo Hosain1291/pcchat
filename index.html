@@ -1901,7 +1901,11 @@ function login(put) {
         focusCmd();
     };
     const guide = () => {
-        put(`대화명을 입력하세요. 처음 오셨으면 <span class="c2">new</span> (가입), 둘러보기만 하려면 <span class="c2">guest</span>`, 'dim');
+        put(`<div class="menu one" style="margin:.2em 0;max-width:30em">
+<div class="mi" data-login="id" tabindex="0"><span class="k">1.</span><span>로그인</span><span class="code">대화명 입력</span></div>
+<div class="mi" data-login="new" tabindex="0"><span class="k">2.</span><span>회원가입</span><span class="code">NEW</span></div>
+<div class="mi" data-login="guest" tabindex="0"><span class="k">3.</span><span>손님으로 둘러보기</span><span class="code">GUEST</span></div></div>`);
+        put(`회원이면 대화명을 입력하세요. 처음 오셨으면 <span class="c2">new</span> 또는 <span class="c2">가입</span>, 둘러보기는 <span class="c2">guest</span>`, 'dim');
         if (lastId) put(`최근 접속한 대화명 : <span class="c1">${esc(lastId)}</span>`, 'dim');
     };
 
@@ -1914,7 +1918,15 @@ function login(put) {
     S.cur = { name:'login', crumb:['로그인'] };
     ask('대화명 :');
 
+    ui.screen.onclick = e => {
+        const b = e.target.closest('[data-login]');
+        if (!b || S.phase !== 'login' || step !== 'id' || busy) return;
+        e.stopPropagation();
+        const k = b.dataset.login;
+        if (k === 'id') ask('대화명 :'); else S.cur.onInput(k);
+    };
     const done = async me => {
+        ui.screen.onclick = null;
         S.me = me;
         S.nick = me.nick;
         DB = NET ? makeRemote(NET.F, NET.db, me.uid) : makeLocal(me.uid);
@@ -1941,10 +1953,11 @@ function login(put) {
         case 'id': {
             if (!v) { guide(); return; }
             const l = v.toLowerCase();
-            if (l === 'new') { put(`대화명 : <span class="hi">new</span>`); put('&nbsp;'); put('[ 새 이용자 가입 ]', 'c2');
+            if (['new', '가입', '회원가입', '2'].includes(l)) { put(`대화명 : <span class="hi">${esc(v)}</span>`); put('&nbsp;'); put('[ 회 원 가 입 ]', 'c2');
                 put('대화명은 2~10자 (영문 · 숫자 · 한글 · _), 대·소문자를 구분합니다. 가입하면 바꿀 수 없습니다.', 'dim');
                 step = 'newId'; ask('새 대화명 :'); return; }
-            if (l === 'guest') {
+            if (l === '1') { ask('대화명 :'); return; }
+            if (l === 'guest' || l === '손님' || l === '3') {
                 put(`대화명 : <span class="hi">guest</span>`);
                 busy = true; ui.cmd.disabled = true;
                 try { await done(await AUTH.guest()); }
@@ -1973,7 +1986,7 @@ function login(put) {
         case 'newId': {
             if (!v) { put('가입을 취소했습니다.', 'dim'); step = 'id'; guide(); ask('대화명 :'); return; }
             put(`새 대화명 : <span class="hi">${esc(v)}</span>`);
-            if (!ID_RE.test(v) || ['new', 'guest'].includes(v.toLowerCase())) { fail('쓸 수 없는 대화명입니다. 2~10자 영문 · 숫자 · 한글 · _ 만 됩니다.'); ask('새 대화명 :'); return; }
+            if (!ID_RE.test(v) || ['new', 'guest', '가입', '회원가입', '손님'].includes(v.toLowerCase())) { fail('쓸 수 없는 대화명입니다. 2~10자 영문 · 숫자 · 한글 · _ 만 됩니다.'); ask('새 대화명 :'); return; }
             form.id = v; step = 'newPw';
             put('비밀번호는 6자 이상, 대·소문자와 띄어쓰기까지 정확히 구분합니다.', 'dim');
             ask('비밀번호 :', true); return;
